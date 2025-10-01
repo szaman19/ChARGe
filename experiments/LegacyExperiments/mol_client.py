@@ -17,7 +17,7 @@ client_key = os.getenv("GOOGLE_API_KEY")
 client = genai.Client(api_key=client_key)
 
 server_params = StdioServerParameters(
-    command="/home/szaman5/ChemMCP/mcp/bin/python3", args=["mol_server.py"], env=None
+    command="python3", args=["mol_server.py"], env=None
 )
 
 
