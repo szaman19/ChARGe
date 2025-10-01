@@ -1,13 +1,13 @@
 ################################################################################
-## Copyright 2025 Lawrence Livermore National Security, LLC., Binghamton University,
-## and other FLASK Project Developers. See the top-level LICENSE file for details.
+## Copyright 2025 Lawrence Livermore National Security, LLC. and Binghamton University.
+## See the top-level LICENSE file for details.
 ##
 ## SPDX-License-Identifier: Apache-2.0
 ################################################################################
-Copyright (c) 2025, Lawrence Livermore National Security, LLC. and Binghamton University
+Copyright (c) 2025, Lawrence Livermore National Security, LLC. and Binghamton University.
 Produced at the Lawrence Livermore National Laboratory and Binghamton University.
-Written by the FLASK Research Team (S. Zaman, Kenneth Chiu, Tal Ben-Nun, B. Van Essen, et al.) 
-listed in the CONTRIBUTORS file.
+Written by the FLASK Research Team (Shehtab Zaman, Kenneth Chiu, Bhavya Kailkhura,
+Tal Ben-Nun, Brian Van Essen, et al.) listed in the CONTRIBUTORS file.
 
 LLNL-CODE-2006345.
 All rights reserved.
