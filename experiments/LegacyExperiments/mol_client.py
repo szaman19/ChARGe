@@ -17,7 +17,7 @@ client_key = os.getenv("GOOGLE_API_KEY")
 client = genai.Client(api_key=client_key)
 
 server_params = StdioServerParameters(
-    command="/home/szaman5/ChemMCP/mcp/bin/python3", args=["chem_server.py"], env=None
+    command="python3", args=["mol_server.py"], env=None
 )
 
 
@@ -44,14 +44,14 @@ async def main():
                 + " generate a different one and try again."
                 + " Output a list of the unique molecules \n\n"
             )
-            # chat_prompt = "What color are Zebras? \n\n"
+
             print(chat_prompt)
             prompt = chat_prompt
 
             await session.initialize()
 
             response = await client.aio.models.generate_content(
-                model="gemini-2.5-flash-preview-05-20",
+                model="gemini-2.5-flash-latest",
                 contents=prompt,
                 config=types.GenerateContentConfig(
                     temperature=0,
