@@ -51,7 +51,7 @@ async def main():
             await session.initialize()
 
             response = await client.aio.models.generate_content(
-                model="gemini-2.5-flash-preview-05-20",
+                model="gemini-2.5-flash-latest",
                 contents=prompt,
                 config=types.GenerateContentConfig(
                     temperature=0,
