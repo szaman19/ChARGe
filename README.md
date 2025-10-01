@@ -108,3 +108,12 @@ class LeadMoleculeOptimization(Experiment):
         return False
 
 ```
+
+# License
+
+Copyright (c) 2025, Lawrence Livermore National Security, LLC. and Binghamton University
+Produced at the Lawrence Livermore National Laboratory and Binghamton University.
+
+SPDX-License-Identifier: Apache-2.0
+
+LLNL-CODE-2006345
