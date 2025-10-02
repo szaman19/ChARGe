@@ -41,8 +41,7 @@ async def main():
                 + " Prefer reactions that are more likely to be performed in a lab "
                 + " setting. \n\n"
             )
-            print("System prompt:", system_prompt)
-            # prompt += "\n"
+            print("System prompt: \n", system_prompt)
 
             print("Prompt: \n")
             prompt = (
