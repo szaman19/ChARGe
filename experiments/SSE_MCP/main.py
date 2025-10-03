@@ -1,0 +1,99 @@
+import argparse
+import asyncio
+from charge.Experiment import Experiment
+import httpx
+from charge.clients.autogen import AutoGenClient
+import os
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--lead-molecule", type=str, default="CC(=O)O[C@H](C)CCN")
+parser.add_argument("--server-url", type=str, default="http://127.0.0.1:8000/sse")
+parser.add_argument(
+    "--model",
+    type=str,
+    default="gpt-oss:latest",
+    help="Model to use for the ollama backend",
+)
+parser.add_argument(
+    "--backend",
+    type=str,
+    default="ollama",
+    choices=[
+        "ollama",
+        "openai",
+        "gemini",
+        "livai",
+        "livchat",
+    ],
+    help="Backend to use for the autogen client",
+)
+
+
+class UniqueMoleculeExperiment(Experiment):
+    def __init__(self, lead_molecule: str):
+        system_prompt = (
+            "You are a world-class chemist. Your task is to generate unique molecules "
+            "based on the lead molecule provided by the user. The generated molecules "
+            "should be chemically valid and diverse, exploring different chemical spaces "
+            "while maintaining some structural similarity to the lead molecule. "
+            "Provide the final answer in a clear and concise manner."
+        )
+
+        user_prompt = (
+            f"Generate 3 unique molecules based on the lead molecule {lead_molecule}. "
+            + "Return only the SMILES strings in a Python list format."
+        )
+
+        super().__init__(system_prompt=system_prompt, user_prompt=user_prompt)
+        print("UniqueMoleculeExperiment initialized with the provided prompts.")
+        self.lead_molecule = lead_molecule
+        self.system_prompt = system_prompt
+        self.user_prompt = user_prompt
+
+
+if __name__ == "__main__":
+
+    args = parser.parse_args()
+    lead_molecule = args.lead_molecule
+    server_url = args.server_url
+    assert server_url is not None, "Server URL must be provided"
+    assert server_url.endswith("/sse"), "Server URL must end with /sse"
+
+    myexperiment = UniqueMoleculeExperiment(lead_molecule=lead_molecule)
+
+    backend = args.backend
+    model = args.model
+    kwargs = {}
+    API_KEY = None
+    if backend in ["openai", "gemini", "livai", "livchat"]:
+        if backend == "openai":
+            API_KEY = os.getenv("OPENAI_API_KEY")
+            model = "gpt-4"
+            kwargs["parallel_tool_calls"] = False
+            kwargs["reasoning_effort"] = "high"
+        elif backend == "livai" or backend == "livchat":
+            API_KEY = os.getenv("OPENAI_API_KEY")
+            BASE_URL = os.getenv("LIVAI_BASE_URL")
+            assert (
+                BASE_URL is not None
+            ), "LivAI Base URL must be set in environment variable"
+            model = "gpt-4.1"
+            kwargs["base_url"] = BASE_URL
+            kwargs["http_client"] = httpx.AsyncClient(verify=False)
+        else:
+            API_KEY = os.getenv("GOOGLE_API_KEY")
+            model = "gemini-flash-latest"
+            kwargs["parallel_tool_calls"] = False
+            kwargs["reasoning_effort"] = "high"
+
+    runner = AutoGenClient(
+        experiment_type=myexperiment,
+        backend=backend,
+        model=model,
+        api_key=API_KEY,
+        server_url=server_url,
+    )
+
+    results = asyncio.run(runner.run())
+
+    print(f"Experiment completed. Results: {results}")
