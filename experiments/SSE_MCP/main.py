@@ -91,6 +91,7 @@ if __name__ == "__main__":
         backend=backend,
         model=model,
         api_key=API_KEY,
+        model_kwargs=kwargs,
         server_url=server_url,
     )
 
