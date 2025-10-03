@@ -6,17 +6,31 @@
 ################################################################################
 
 from mcp.server.fastmcp import FastMCP
-from rdkit import Chem
-from rdkit.Chem import AllChem, Descriptors
+try:
+    from rdkit import Chem
+    from rdkit.Chem import AllChem, Descriptors
+    from rdkit.Contrib.SA_Score import sascorer
+except ImportError:
+    raise ImportError(
+        "Please install the rdkit package to use this module."
+    )
+
 from loguru import logger
-from rdkit.Contrib.SA_Score import sascorer
+import logging
 
-mcp = FastMCP("Chem and BioInformatics MCP Server")
+from charge.servers.server_utils import args
 
-logger.info("Starting Chem and BioInformatics MCP Server")
+SMILES_mcp = FastMCP(
+    "[RDKit-SMILES] Chem and BioInformatics MCP Server",
+    port=args.port,
+    website_url=f"{args.host}",
+)
 
+logger.info("[RDKit-SMILES] Starting Chem and BioInformatics MCP Server")
 
-@mcp.tool()
+logging.basicConfig(level=logging.DEBUG)
+
+@SMILES_mcp.tool()
 def canonicalize_smiles(smiles: str) -> str:
     """
     Canonicalize a SMILES string.
@@ -29,20 +43,25 @@ def canonicalize_smiles(smiles: str) -> str:
         return smiles
 
 
-@mcp.tool()
+# Persistent counter to demonstrate statefulness
+SMILES_VERIFICATION_COUNTER = 0
+
+@SMILES_mcp.tool()
 def verify_smiles(smiles: str) -> bool:
     """
     Verify if a SMILES string is valid.
     """
     try:
-        logger.info(f"Verifying SMILES: {smiles}")
+        global SMILES_VERIFICATION_COUNTER
+        SMILES_VERIFICATION_COUNTER += 1
+        logger.info(f"Verifying SMILES: {smiles} used {SMILES_VERIFICATION_COUNTER} times")
         Chem.MolFromSmiles(smiles)
         return True
     except Exception as e:
         return False
 
 
-@mcp.tool()
+@SMILES_mcp.tool()
 def get_synthesizability(smiles: str) -> float:
     """
     Calculate the synthesizability of a molecule given its SMILES string.
@@ -63,54 +82,10 @@ def get_synthesizability(smiles: str) -> float:
         return 10.0
 
 
-@mcp.tool()
-def get_density(smiles: str) -> float:
-    """
-    Calculate the density of a molecule given its SMILES string.
-    """
-    try:
-        # logger.info(f"Calculating density for SMILES: {smiles}")
-        mol = Chem.MolFromSmiles(smiles)
-        if mol is None:
-            logger.warning("Invalid SMILES string or molecule could not be created.")
-            return 0.0
-        mol = Chem.AddHs(mol)
-        AllChem.EmbedMolecule(mol, AllChem.ETKDG())
-        AllChem.UFFOptimizeMolecule(mol, maxIters=500)
-
-        if mol.GetNumConformers() == 0:
-            logger.warning("No conformers found for the molecule.")
-            return 0.0
-        mw = Descriptors.MolWt(mol)
-        num_atoms = mol.GetNumAtoms()
-        if num_atoms == 0:
-            logger.warning("No atoms in the molecule.")
-            return 0.0
-
-        volume = AllChem.ComputeMolVolume(mol)
-        density = volume / mw
-        logger.info(f"Density for SMILES {smiles}: {density}")
-        return density
-    except Exception as e:
-        return 0.0
-
-
-@mcp.tool()
-def get_density_and_synthesizability(smiles: str) -> tuple[float, float]:
-    """
-    Calculate the density and synthesizability of a molecule given its SMILES string.
-    Returns a tuple of (density, synthesizability).
-    """
-
-    density = get_density(smiles)
-    synthesizability = get_synthesizability(smiles)
-    return density, synthesizability
-
-
 database_of_smiles = []
 
 
-@mcp.tool()
+@SMILES_mcp.tool()
 def known_smiles(smiles: str) -> bool:
     """
     Check if a SMILES string is already known.
@@ -132,5 +107,3 @@ def known_smiles(smiles: str) -> bool:
         return False
 
 
-if __name__ == "__main__":
-    mcp.run(transport="stdio")

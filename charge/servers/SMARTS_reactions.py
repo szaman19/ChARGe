@@ -6,17 +6,28 @@
 ################################################################################
 
 from mcp.server.fastmcp import FastMCP
-from rdkit import Chem
-from rdkit.Chem import AllChem, rdChemReactions
+try:
+    from rdkit import Chem
+    from rdkit.Chem import AllChem, rdChemReactions
+except ImportError:
+    raise ImportError(
+        "Please install the rdkit package to use this module."
+    )
+
 from loguru import logger
 from typing import Tuple
 
-mcp = FastMCP("Chemistry and reaction verification MCP Server")
+from charge.servers.server_utils import args
 
-logger.info("Starting Chemistry and reaction verification MCP Server")
+SMARTS_mcp = FastMCP(
+    "[RDKit-SMARTS] Chemistry and reaction verification MCP Server",
+    port=args.port,
+    website_url=f"{args.host}",
+)
 
+logger.info("[RDKit-SMARTS] Starting Chemistry and reaction verification MCP Server")
 
-@mcp.tool()
+@SMARTS_mcp.tool()
 def verify_reaction_SMARTS(smarts: str) -> Tuple[bool, str]:
     """
     Verify if a SMARTS string is valid.
@@ -48,7 +59,8 @@ def verify_reaction_SMARTS(smarts: str) -> Tuple[bool, str]:
         return False, f"Invalid Syntax for SMARTS string. The error is: {e}"
 
 
-@mcp.tool()
+# This should be removed and used from the SMILES MCP server
+@SMARTS_mcp.tool()
 def verify_smiles(smiles: str) -> Tuple[bool, str]:
     """
     Verify if a SMILES string is valid.
@@ -63,7 +75,7 @@ def verify_smiles(smiles: str) -> Tuple[bool, str]:
         return False, f"Invalid SMILES string: {e}"
 
 
-@mcp.tool()
+@SMARTS_mcp.tool()
 def verify_reaction(
     smarts: str, reactants: list[str], products: list[str]
 ) -> Tuple[bool, str]:
@@ -125,8 +137,3 @@ def verify_reaction(
         logger.error(f"Error verifying reaction: {e}")
         return False, f"Error verifying reaction: {e}"
 
-
-if __name__ == "__main__":
-    mcp.run(
-        transport="stdio",
-    )
