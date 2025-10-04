@@ -10,11 +10,10 @@ try:
     from rdkit.Chem import AllChem, Descriptors
     from rdkit.Contrib.SA_Score import sascorer
 except ImportError:
-    raise ImportError(
-        "Please install the rdkit package to use this module."
-    )
+    raise ImportError("Please install the rdkit package to use this module.")
 from loguru import logger
-from charge.servers.SMILES import SMILES_mcp
+from charge.servers.SMILES import SMILES_mcp, _synthesizability_helper
+
 
 # Add some custom tools to the server
 @SMILES_mcp.tool()
@@ -57,7 +56,7 @@ def get_density_and_synthesizability(smiles: str) -> tuple[float, float]:
     """
 
     density = get_density(smiles)
-    synthesizability = SMILES_mcp.get_synthesizability(smiles)
+    synthesizability = _synthesizability_helper(smiles)
     return density, synthesizability
 
 
