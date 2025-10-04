@@ -6,14 +6,13 @@
 ################################################################################
 
 from mcp.server.fastmcp import FastMCP
+
 try:
     from rdkit import Chem
     from rdkit.Chem import AllChem, Descriptors
     from rdkit.Contrib.SA_Score import sascorer
 except ImportError:
-    raise ImportError(
-        "Please install the rdkit package to use this module."
-    )
+    raise ImportError("Please install the rdkit package to use this module.")
 
 from loguru import logger
 import logging
@@ -29,6 +28,7 @@ SMILES_mcp = FastMCP(
 logger.info("[RDKit-SMILES] Starting Chem and BioInformatics MCP Server")
 
 logging.basicConfig(level=logging.DEBUG)
+
 
 @SMILES_mcp.tool()
 def canonicalize_smiles(smiles: str) -> str:
@@ -46,6 +46,7 @@ def canonicalize_smiles(smiles: str) -> str:
 # Persistent counter to demonstrate statefulness
 SMILES_VERIFICATION_COUNTER = 0
 
+
 @SMILES_mcp.tool()
 def verify_smiles(smiles: str) -> bool:
     """
@@ -54,20 +55,16 @@ def verify_smiles(smiles: str) -> bool:
     try:
         global SMILES_VERIFICATION_COUNTER
         SMILES_VERIFICATION_COUNTER += 1
-        logger.info(f"Verifying SMILES: {smiles} used {SMILES_VERIFICATION_COUNTER} times")
+        logger.info(
+            f"Verifying SMILES: {smiles} used {SMILES_VERIFICATION_COUNTER} times"
+        )
         Chem.MolFromSmiles(smiles)
         return True
     except Exception as e:
         return False
 
 
-@SMILES_mcp.tool()
-def get_synthesizability(smiles: str) -> float:
-    """
-    Calculate the synthesizability of a molecule given its SMILES string.
-    Values rankge from 1.0 (highly synthesizable) to 10.0 (not synthesizable).
-    """
-
+def _synthesizability_helper(smiles: str) -> float:
     try:
         # logger.info(f"Calculating synthesizability for SMILES: {smiles}")
         mol = Chem.MolFromSmiles(smiles)
@@ -80,6 +77,15 @@ def get_synthesizability(smiles: str) -> float:
     except Exception as e:
         logger.error(f"Error creating molecule from SMILES: {e}")
         return 10.0
+
+
+@SMILES_mcp.tool()
+def get_synthesizability(smiles: str) -> float:
+    """
+    Calculate the synthesizability of a molecule given its SMILES string.
+    Values range from 1.0 (highly synthesizable) to 10.0 (not synthesizable).
+    """
+    return _synthesizability_helper(smiles)
 
 
 database_of_smiles = []
@@ -105,5 +111,3 @@ def known_smiles(smiles: str) -> bool:
 
     except Exception as e:
         return False
-
-
