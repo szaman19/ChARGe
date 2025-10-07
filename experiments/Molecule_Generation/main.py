@@ -4,11 +4,8 @@ import asyncio
 from LMOExperiment import LMOExperiment as LeadMoleculeOptimization
 import os
 from charge.clients.Client import Client
-import logging
 import helper_funcs
-
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+from loguru import logger
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--lead-molecule", type=str, default="CC(=O)O[C@H](C)CCN")
@@ -19,7 +16,7 @@ parser.add_argument(
 parser.add_argument(
     "--server-path",
     type=str,
-    default="mol_server.py",
+    default=None,
     help="Path to an existing MCP server script",
 )
 
@@ -33,7 +30,7 @@ if __name__ == "__main__":
 
     myexperiment = LeadMoleculeOptimization(lead_molecule=args.lead_molecule)
     server_path = args.server_path
-    assert server_path is not None, "Server path must be provided"
+    server_urls = args.server_urls
 
     if args.client == "gemini":
         from charge.clients.gemini import GeminiClient
@@ -55,6 +52,7 @@ if __name__ == "__main__":
             api_key=API_KEY,
             model_kwargs=kwargs,
             server_path=server_path,
+            server_url=server_urls,
         )
 
     lead_molecule_smiles = args.lead_molecule
@@ -87,13 +85,17 @@ if __name__ == "__main__":
                 smiles=results[0], parent_id=parent_id, node_id=node_id
             )
             canonical_smiles = processed_mol["smiles"]
-            if canonical_smiles not in new_molecules:
+            if (
+                canonical_smiles not in new_molecules
+                and canonical_smiles != "Invalid SMILES"
+            ):
                 new_molecules.append(processed_mol["smiles"])
                 mol_data.append(processed_mol)
                 helper_funcs.save_list_to_json_file(
                     data=mol_data, file_path="known_molecules.json"
                 )
                 logger.info(f"New molecule added: {canonical_smiles}")
+
                 node_id += 1
             else:
                 logger.info(f"Duplicate molecule found: {canonical_smiles}")

@@ -243,10 +243,6 @@ class AutoGenClient(Client):
             user_prompt is not None
         ), "User prompt must be provided for single-turn run."
 
-        assert (
-            len(self.servers) > 0
-        ), "No MCP servers available. Please provide server_path or server_url."
-
         workbenches = [McpWorkbench(server) for server in self.servers]
 
         # Start the servers

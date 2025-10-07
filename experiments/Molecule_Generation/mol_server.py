@@ -7,8 +7,6 @@
 
 try:
     from rdkit import Chem
-    from rdkit.Chem import AllChem, Descriptors
-    from rdkit.Contrib.SA_Score import sascorer
 except ImportError:
     raise ImportError("Please install the rdkit package to use this module.")
 import json
@@ -20,7 +18,8 @@ from mcp.server.fastmcp import FastMCP
 from charge.clients.autogen import AutoGenClient
 from charge.clients.Client import Client
 import asyncio
-from charge.servers import SMILES_utils as hf
+from charge.servers import SMILES_utils
+import helper_funcs as hf
 import argparse
 
 mcp = FastMCP(
@@ -53,7 +52,8 @@ class DiagnoseSMILESTask(Experiment):
         )
         super().__init__(system_prompt=system_prompt, user_prompt=user_prompt)
 
-    def update_user_prompt(self, smiles: str) -> str:
+    def update_user_prompt(self, smiles: str) -> None:
+        assert self.user_prompt is not None
         self.user_prompt.format(smiles)
 
 
@@ -67,6 +67,7 @@ def diagnose_smiles(smiles: str) -> str:
     Returns:
         str: The diagnosis of the SMILES string.
     """
+    logger.info(f"Diagnosing SMILES string: {smiles}")
     experiment = DiagnoseSMILESTask()
     experiment.update_user_prompt(smiles)
     diagnose_agent = AutoGenClient(
@@ -80,9 +81,12 @@ def diagnose_smiles(smiles: str) -> str:
     try:
         response = asyncio.run(diagnose_agent.run())
         assert response is not None
-        assert len(response.messages) > 0
-        assert response.messages[-1] is not None
-        return f"SMILES diagnoses: {response.messages[-1].content}"
+        assert len(response.messages) > 0  # type: ignore
+        assert response.messages[-1] is not None  # type: ignore
+
+        diagnoses = response.messages[-1].content  # type: ignore
+        logger.info(f"Diagnosis: {diagnoses}")
+        return f"SMILES diagnoses: {diagnoses}"  # type: ignore
 
     except Exception as e:
         logger.error(f"An error occurred: {e}")
@@ -107,7 +111,7 @@ def is_already_known(smiles: str) -> bool:
         raise ValueError("Invalid SMILES string.")
 
     try:
-        canonical_smiles = hf.canonicalize_smiles(smiles)
+        canonical_smiles = SMILES_utils.canonicalize_smiles(smiles)
 
         try:
             with open(JSON_FILE_PATH) as f:
@@ -126,15 +130,36 @@ def is_already_known(smiles: str) -> bool:
     return canonical_smiles in known_smiles
 
 
+@mcp.tool()
+def get_density(smiles: str) -> float:
+    """
+    Calculate the density of a molecule given its SMILES string.
+
+    Args:
+        smiles (str): The input SMILES string.
+    Returns:
+        float: The density of the molecule.
+    """
+    density = hf.get_density(smiles)
+    logger.info(f"Density for SMILES {smiles}: {density}")
+    return density
+
+
 # Add the SMILES utility functions as MCP tools
-mcp.tool()(hf.canonicalize_smiles)
-mcp.tool()(hf.verify_smiles)
-mcp.tool()(hf.get_synthesizability)
+mcp.tool()(SMILES_utils.canonicalize_smiles)
+mcp.tool()(SMILES_utils.verify_smiles)
+mcp.tool()(SMILES_utils.get_synthesizability)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Molecule Tools Server")
     Client.add_std_parser_arguments(parser)
+    parser.add_argument(
+        "--json_file",
+        type=str,
+        default="known_molecules.json",
+        help="Path to the JSON file containing known molecules.",
+    )
 
     args = parser.parse_args()
     # global MODEL, BACKEND, API_KEY, KWARGS, JSON_FILE_PATH
