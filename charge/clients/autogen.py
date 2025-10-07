@@ -1,6 +1,12 @@
 try:
     from autogen_agentchat.agents import AssistantAgent, UserProxyAgent
-    from autogen_core.models import ModelFamily, ChatCompletionClient
+    from autogen_core.model_context import UnboundedChatCompletionContext
+    from autogen_core.models import (
+        ModelFamily,
+        ChatCompletionClient,
+        LLMMessage,
+        AssistantMessage,
+    )
     from autogen_ext.tools.mcp import StdioServerParams, McpWorkbench, SseServerParams
     from autogen_agentchat.messages import TextMessage
     from autogen_agentchat.conditions import HandoffTermination, TextMentionTermination
@@ -12,11 +18,26 @@ except ImportError:
         "Please install the autogen-agentchat package to use this module."
     )
 
+import asyncio
 from functools import partial
 import os
 from charge.clients.Client import Client
-from typing import Type, Optional, Dict, Union
+from typing import Type, Optional, Dict, Union, List
 from charge.Experiment import Experiment
+
+
+class ReasoningModelContext(UnboundedChatCompletionContext):
+    """A model context for reasoning models."""
+
+    async def get_messages(self) -> List[LLMMessage]:
+        messages = await super().get_messages()
+        # Filter out thought field from AssistantMessage.
+        messages_out: List[LLMMessage] = []
+        for message in messages:
+            if isinstance(message, AssistantMessage):
+                message.thought = None
+            messages_out.append(message)
+        return messages_out
 
 
 class AutoGenClient(Client):
@@ -34,7 +55,7 @@ class AutoGenClient(Client):
         server_path: Optional[Union[str, list[str]]] = None,
         server_url: Optional[Union[str, list[str]]] = None,
         server_kwargs: Optional[dict] = None,
-        max_tool_calls: int = 15,
+        max_tool_calls: int = 30,
         check_response: bool = False,
         max_multi_turns: int = 100,
     ):
@@ -91,6 +112,7 @@ class AutoGenClient(Client):
                 self.model_client = OllamaChatCompletionClient(
                     model=model,
                     model_info=model_info,
+                    model_context=ReasoningModelContext(),
                 )
             else:
                 from autogen_ext.models.openai import OpenAIChatCompletionClient
@@ -125,9 +147,17 @@ class AutoGenClient(Client):
                     self.servers.append(
                         SseServerParams(url=su, **(server_kwargs or {}))
                     )
-        self.messages = []
 
-    def configure(model: Optional[str], backend: str) -> (str, str, str, Dict[str, str]):
+    def reset(self):
+        # Resets the Client buffers
+        super().reset()
+
+        # Resets the model client
+        asyncio.run(self.model_client.on_reset())
+
+    def configure(
+        model: Optional[str], backend: str
+    ) -> (str, str, str, Dict[str, str]):
         import httpx
 
         kwargs = {}
@@ -217,25 +247,24 @@ class AutoGenClient(Client):
             len(self.servers) > 0
         ), "No MCP servers available. Please provide server_path or server_url."
 
-        wokbenches = [McpWorkbench(server) for server in self.servers]
+        workbenches = [McpWorkbench(server) for server in self.servers]
 
         # Start the servers
-        for workbench in wokbenches:
+        for workbench in workbenches:
             await workbench.start()
 
-        # async with McpWorkbench(self.server) as workbench:
         #     # TODO: Convert this to use custom agent in the future
         agent = AssistantAgent(
             name="Assistant",
             model_client=self.model_client,
             system_message=system_prompt,
-            workbench=wokbenches,
+            workbench=workbenches,
             max_tool_iterations=self.max_tool_calls,
         )
 
         answer_invalid, result = await self.step(agent, user_prompt)
 
-        for workbench in wokbenches:
+        for workbench in workbenches:
             await workbench.stop()
 
         if answer_invalid:

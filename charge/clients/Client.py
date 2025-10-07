@@ -19,7 +19,13 @@ class Client:
         self.max_retries = max_retries
         self.servers = []
         self.messages = []
+        self.reasoning_trace = []
         self._setup()
+
+    def reset(self):
+        self.servers = []
+        self.messages = []
+        self.reasoning_trace = []
 
     def _setup(self):
         cls_info = inspect_class(self.experiment_type)
