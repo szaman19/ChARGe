@@ -1,6 +1,12 @@
 try:
     from autogen_agentchat.agents import AssistantAgent, UserProxyAgent
-    from autogen_core.models import ModelFamily, ChatCompletionClient
+    from autogen_core.model_context import UnboundedChatCompletionContext
+    from autogen_core.models import (
+        ModelFamily,
+        ChatCompletionClient,
+        LLMMessage,
+        AssistantMessage,
+    )
     from autogen_ext.tools.mcp import StdioServerParams, McpWorkbench, SseServerParams
     from autogen_agentchat.messages import TextMessage
     from autogen_agentchat.conditions import HandoffTermination, TextMentionTermination
@@ -12,11 +18,26 @@ except ImportError:
         "Please install the autogen-agentchat package to use this module."
     )
 
+import asyncio
 from functools import partial
 import os
 from charge.clients.Client import Client
-from typing import Type, Optional, Dict, Union
+from typing import Type, Optional, Dict, Union, List
 from charge.Experiment import Experiment
+
+
+class ReasoningModelContext(UnboundedChatCompletionContext):
+    """A model context for reasoning models."""
+
+    async def get_messages(self) -> List[LLMMessage]:
+        messages = await super().get_messages()
+        # Filter out thought field from AssistantMessage.
+        messages_out: List[LLMMessage] = []
+        for message in messages:
+            if isinstance(message, AssistantMessage):
+                message.thought = None
+            messages_out.append(message)
+        return messages_out
 
 
 class AutoGenClient(Client):
@@ -34,7 +55,7 @@ class AutoGenClient(Client):
         server_path: Optional[Union[str, list[str]]] = None,
         server_url: Optional[Union[str, list[str]]] = None,
         server_kwargs: Optional[dict] = None,
-        max_tool_calls: int = 15,
+        max_tool_calls: int = 30,
         check_response: bool = False,
         max_multi_turns: int = 100,
     ):
@@ -91,6 +112,7 @@ class AutoGenClient(Client):
                 self.model_client = OllamaChatCompletionClient(
                     model=model,
                     model_info=model_info,
+                    model_context=ReasoningModelContext(),
                 )
             else:
                 from autogen_ext.models.openai import OpenAIChatCompletionClient
@@ -125,9 +147,10 @@ class AutoGenClient(Client):
                     self.servers.append(
                         SseServerParams(url=su, **(server_kwargs or {}))
                     )
-        self.messages = []
 
-    def configure(model: Optional[str], backend: str) -> (str, str, str, Dict[str, str]):
+    def configure(
+        model: Optional[str], backend: str
+    ) -> (str, str, str, Dict[str, str]):
         import httpx
 
         kwargs = {}
@@ -209,6 +232,12 @@ class AutoGenClient(Client):
     async def run(self):
         system_prompt = self.experiment_type.get_system_prompt()
         user_prompt = self.experiment_type.get_user_prompt()
+        structured_output_schema = None
+        if self.experiment_type.has_structured_output_schema():
+            structured_output_schema = (
+                self.experiment_type.get_structured_output_schema()
+            )
+
         assert (
             user_prompt is not None
         ), "User prompt must be provided for single-turn run."
@@ -217,30 +246,52 @@ class AutoGenClient(Client):
             len(self.servers) > 0
         ), "No MCP servers available. Please provide server_path or server_url."
 
-        wokbenches = [McpWorkbench(server) for server in self.servers]
+        workbenches = [McpWorkbench(server) for server in self.servers]
 
         # Start the servers
-        for workbench in wokbenches:
+        for workbench in workbenches:
             await workbench.start()
 
-        # async with McpWorkbench(self.server) as workbench:
         #     # TODO: Convert this to use custom agent in the future
         agent = AssistantAgent(
             name="Assistant",
             model_client=self.model_client,
             system_message=system_prompt,
-            workbench=wokbenches,
+            workbench=workbenches,
             max_tool_iterations=self.max_tool_calls,
+            reflect_on_tool_use=True,
+            # output_content_type=structured_output_schema,
         )
 
         answer_invalid, result = await self.step(agent, user_prompt)
 
-        for workbench in wokbenches:
+        for workbench in workbenches:
             await workbench.stop()
 
         if answer_invalid:
+            # Maybe convert this to a warning and let the user handle it
+            # warnings.warn("Failed to get a valid response after maximum retries.")
+            # return None
             raise ValueError("Failed to get a valid response after maximum retries.")
         else:
+            if structured_output_schema is not None:
+                # Parse the output using the structured output schema
+                assert isinstance(result.messages[-1], TextMessage)
+                content = result.messages[-1].content
+                try:
+                    parsed_output = structured_output_schema.model_validate_json(
+                        content
+                    )
+                    return parsed_output
+                except Exception as e:
+                    # warnings.warn(f"Failed to parse output: {e}")
+                    # return result.messages[-1].content
+
+                    # We could also potentially reprompt the model to fix the output
+                    # but for now, we just raise an error
+                    raise ValueError(f"Failed to parse output: {e}")
+            # gracefully close the
+            await agent.close()
             return result.messages[-1].content
 
     async def chat(self):

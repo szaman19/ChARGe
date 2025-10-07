@@ -20,7 +20,12 @@ class Client:
         self.max_retries = max_retries
         self.servers = []
         self.messages = []
+        self.reasoning_trace = []
         self._setup()
+
+    def reset(self):
+        self.messages = []
+        self.reasoning_trace = []
 
     def _setup(self):
         cls_info = inspect_class(self.experiment_type)
@@ -90,6 +95,7 @@ class Client:
     async def refine(self, feedback: str):
         raise NotImplementedError("Subclasses must implement this method.")
 
+    @staticmethod
     def add_std_parser_arguments(parser: argparse.ArgumentParser):
         parser.add_argument(
             "--model",
