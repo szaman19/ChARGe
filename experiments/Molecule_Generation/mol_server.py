@@ -21,6 +21,7 @@ from charge.clients.autogen import AutoGenClient
 from charge.clients.Client import Client
 import asyncio
 from charge.servers import SMILES_utils as hf
+import argparse
 
 mcp = FastMCP(
     "SMILES Diagnosis and retrieval MCP Server",
@@ -132,7 +133,18 @@ mcp.tool()(hf.get_synthesizability)
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Molecule Tools Server")
     Client.add_std_parser_arguments(parser)
 
     args = parser.parse_args()
+    # global MODEL, BACKEND, API_KEY, KWARGS, JSON_FILE_PATH
+    MODEL = args.model if args.model else MODEL
+    BACKEND = args.backend if args.backend else BACKEND
+    MODEL, BACKEND, API_KEY, KWARGS = AutoGenClient.configure(
+        model=MODEL, backend=BACKEND
+    )
+    logger.info(f"Using model: {MODEL} on backend: {BACKEND}")
+    JSON_FILE_PATH = args.json_file if args.json_file else JSON_FILE_PATH
+    logger.info(f"Using known molecules database at: {JSON_FILE_PATH}")
+
     mcp.run(transport="sse")

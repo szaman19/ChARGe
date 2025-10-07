@@ -148,6 +148,7 @@ class AutoGenClient(Client):
                         SseServerParams(url=su, **(server_kwargs or {}))
                     )
 
+    @staticmethod
     def configure(
         model: Optional[str], backend: str
     ) -> (str, str, str, Dict[str, str]):
