@@ -239,6 +239,12 @@ class AutoGenClient(Client):
     async def run(self):
         system_prompt = self.experiment_type.get_system_prompt()
         user_prompt = self.experiment_type.get_user_prompt()
+        structured_output_schema = None
+        if self.experiment_type.has_structured_output_schema():
+            structured_output_schema = (
+                self.experiment_type.get_structured_output_schema()
+            )
+
         assert (
             user_prompt is not None
         ), "User prompt must be provided for single-turn run."
@@ -260,6 +266,7 @@ class AutoGenClient(Client):
             system_message=system_prompt,
             workbench=workbenches,
             max_tool_iterations=self.max_tool_calls,
+            output_content_type=structured_output_schema,
         )
 
         answer_invalid, result = await self.step(agent, user_prompt)

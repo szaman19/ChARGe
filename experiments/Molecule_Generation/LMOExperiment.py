@@ -1,7 +1,8 @@
 import charge
 from charge.Experiment import Experiment
 import helper_funcs
-from typing import Optional
+from typing import Optional, List
+from pydantic import BaseModel, field_validator
 
 SYSTEM_PROMPT = """
 You are a world-class medicinal chemist with expertise in drug discovery and molecular design. Your task is to propose novel small molecules that are likely to exhibit high binding affinity to a specified biological target, while also being synthetically accessible. 
@@ -17,10 +18,36 @@ calculate its density and synthetic accessibility. Only return molecules with hi
 the same or lower synthetic accessibility compared to the lead molecule.
 If a molecule is known or doesn't fit the criteria, move on and
 generate a different one and try again.
-Output a list of the unique molecules.
+Return a list of the unique molecules.
 
 For example, the output format should be:
 ["CCO", "CCN", "CCC"]
+"""
+
+
+class MoleculeOutputSchema(BaseModel):
+    """
+    Structure output representing a valid list of SMILES strings.
+    """
+
+    smiles_list: List[str]
+
+    @field_validator("smiles_list")
+    @classmethod
+    def validate_smiles_list(cls, smiles_list):
+        if not isinstance(smiles_list, list):
+            raise ValueError("smiles_list must be a list.")
+        for smiles in smiles_list:
+            if not isinstance(smiles, str):
+                raise ValueError("Each SMILES must be a string.")
+            if not helper_funcs.verify_smiles(smiles):
+                raise ValueError(f"Invalid SMILES string: {smiles}")
+        return smiles_list
+
+
+SCHEMA_PROMPT = f"""
+Return your answer as a JSON object matching this schema:
+{MoleculeOutputSchema.model_json_schema()}
 """
 
 
@@ -35,7 +62,7 @@ class LMOExperiment(Experiment):
     ):
 
         if user_prompt is None:
-            user_prompt = USER_PROMPT.format(lead_molecule)
+            user_prompt = USER_PROMPT.format(lead_molecule) + SCHEMA_PROMPT
         if system_prompt is None:
             system_prompt = SYSTEM_PROMPT
 
@@ -54,6 +81,7 @@ class LMOExperiment(Experiment):
         self.refinement_prompt = refinement_prompt
         self.max_synth_score = helper_funcs.get_synthesizability(lead_molecule)
         self.min_density = helper_funcs.get_density(lead_molecule)
+        self.set_structured_output_schema(MoleculeOutputSchema)
 
     @charge.hypothesis
     def canonicalize_smiles(self, smiles: str) -> str:
