@@ -257,7 +257,7 @@ class AutoGenClient(Client):
             name="Assistant",
             model_client=self.model_client,
             system_message=system_prompt,
-            workbench=workbenches,
+            workbench=workbenches if len(workbenches) > 0 else None,
             max_tool_iterations=self.max_tool_calls,
             reflect_on_tool_use=True,
             # output_content_type=structured_output_schema,

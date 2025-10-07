@@ -1,9 +1,11 @@
 import argparse
 import asyncio
+
 from LMOExperiment import LMOExperiment as LeadMoleculeOptimization
 import os
 from charge.clients.Client import Client
 import logging
+import helper_funcs
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -25,6 +27,7 @@ parser.add_argument(
 Client.add_std_parser_arguments(parser)
 
 args = parser.parse_args()
+
 
 if __name__ == "__main__":
 
@@ -54,19 +57,47 @@ if __name__ == "__main__":
             server_path=server_path,
         )
 
+    lead_molecule_smiles = args.lead_molecule
+    logger.info(f"Starting experiment with lead molecule: {lead_molecule_smiles}")
+    parent_id = 0
+    node_id = 0
+    lead_molecule_data = helper_funcs.post_process_smiles(
+        smiles=lead_molecule_smiles, parent_id=parent_id - 1, node_id=node_id
+    )
+
+    # Start the db with the lead molecule
+    helper_funcs.save_list_to_json_file(
+        data=[lead_molecule_data], file_path="known_molecules.json"
+    )
+    logger.info(f"Storing found molecules in known_molecules.json")
+
     # Run the experiment in a loop
-    new_molecules = []
+    new_molecules = helper_funcs.get_list_from_json_file(
+        file_path="known_molecules.json"
+    )  # Start with known molecules
+
+    mol_data = [lead_molecule_data]
 
     while True:
         try:
             results = asyncio.run(runner.run())
             results = results.as_list()  # Convert to list of strings
             logger.info(f"New molecules generated: {results}")
+            processed_mol = helper_funcs.post_process_smiles(
+                smiles=results[0], parent_id=parent_id, node_id=node_id
+            )
+            canonical_smiles = processed_mol["smiles"]
+            if canonical_smiles not in new_molecules:
+                new_molecules.append(processed_mol["smiles"])
+                mol_data.append(processed_mol)
+                helper_funcs.save_list_to_json_file(
+                    data=mol_data, file_path="known_molecules.json"
+                )
+                logger.info(f"New molecule added: {canonical_smiles}")
+                node_id += 1
+            else:
+                logger.info(f"Duplicate molecule found: {canonical_smiles}")
 
-            if results[0] not in new_molecules:
-                new_molecules.append(
-                    results[0]
-                )  # Ensure uniqueness (should match the server-side check)
             logger.info(f"Total unique molecules so far: {new_molecules}")
 
             # TODO: Update the prompt with the new lead molecule or maybe the
