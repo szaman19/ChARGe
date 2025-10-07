@@ -1,7 +1,6 @@
 import argparse
 import asyncio
-from time import time
-
+import time
 from LMOExperiment import LMOExperiment as LeadMoleculeOptimization
 import os
 from charge.clients.Client import Client
