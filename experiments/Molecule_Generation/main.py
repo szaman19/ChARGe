@@ -3,6 +3,10 @@ import asyncio
 from LMOExperiment import LMOExperiment as LeadMoleculeOptimization
 import os
 from charge.clients.Client import Client
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--lead-molecule", type=str, default="CC(=O)O[C@H](C)CCN")
@@ -37,7 +41,9 @@ if __name__ == "__main__":
     elif args.client == "autogen":
         from charge.clients.autogen import AutoGenClient
 
-        (model, backend, API_KEY, kwargs) = AutoGenClient.configure(args.model, args.backend)
+        (model, backend, API_KEY, kwargs) = AutoGenClient.configure(
+            args.model, args.backend
+        )
 
         runner = AutoGenClient(
             experiment_type=myexperiment,
@@ -48,6 +54,36 @@ if __name__ == "__main__":
             server_path=server_path,
         )
 
-    results = asyncio.run(runner.run())
+    # Run the experiment in a loop
+    new_molecules = []
 
-    print(f"Experiment completed. Results: {results}")
+    while True:
+        try:
+            results = asyncio.run(runner.run())
+            results = results.as_list()  # Convert to list of strings
+            logger.info(f"New molecules generated: {results}")
+
+            if results[0] not in new_molecules:
+                new_molecules.append(
+                    results[0]
+                )  # Ensure uniqueness (should match the server-side check)
+            logger.info(f"Total unique molecules so far: {new_molecules}")
+
+            # TODO: Update the prompt with the new lead molecule or maybe the
+            # the best performing molecule.
+
+            # reset the runner for the next iteration
+            runner.reset()
+
+            if len(new_molecules) >= 5:  # Collect 5 new molecules then stop
+                break
+        except KeyboardInterrupt:
+            logger.info("Experiment interrupted by user.")
+            break
+        except Exception as e:
+            logger.error(f"An error occurred: {e}")
+            logger.info("Restarting the experiment...")
+            runner.reset()
+            continue
+
+    logger.info(f"Experiment completed. Results: {new_molecules}")

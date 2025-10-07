@@ -148,13 +148,6 @@ class AutoGenClient(Client):
                         SseServerParams(url=su, **(server_kwargs or {}))
                     )
 
-    def reset(self):
-        # Resets the Client buffers
-        super().reset()
-
-        # Resets the model client
-        asyncio.run(self.model_client.on_reset())
-
     def configure(
         model: Optional[str], backend: str
     ) -> (str, str, str, Dict[str, str]):
@@ -266,7 +259,8 @@ class AutoGenClient(Client):
             system_message=system_prompt,
             workbench=workbenches,
             max_tool_iterations=self.max_tool_calls,
-            output_content_type=structured_output_schema,
+            reflect_on_tool_use=True,
+            # output_content_type=structured_output_schema,
         )
 
         answer_invalid, result = await self.step(agent, user_prompt)
@@ -275,8 +269,29 @@ class AutoGenClient(Client):
             await workbench.stop()
 
         if answer_invalid:
+            # Maybe convert this to a warning and let the user handle it
+            # warnings.warn("Failed to get a valid response after maximum retries.")
+            # return None
             raise ValueError("Failed to get a valid response after maximum retries.")
         else:
+            if structured_output_schema is not None:
+                # Parse the output using the structured output schema
+                assert isinstance(result.messages[-1], TextMessage)
+                content = result.messages[-1].content
+                try:
+                    parsed_output = structured_output_schema.model_validate_json(
+                        content
+                    )
+                    return parsed_output
+                except Exception as e:
+                    # warnings.warn(f"Failed to parse output: {e}")
+                    # return result.messages[-1].content
+
+                    # We could also potentially reprompt the model to fix the output
+                    # but for now, we just raise an error
+                    raise ValueError(f"Failed to parse output: {e}")
+            # gracefully close the
+            await agent.close()
             return result.messages[-1].content
 
     async def chat(self):

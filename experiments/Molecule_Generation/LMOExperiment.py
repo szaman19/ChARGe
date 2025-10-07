@@ -12,7 +12,7 @@ for binding affinity and synthetic accessibility.
 """
 
 USER_PROMPT = """
-Given the lead molecule: {0}, generate 3 new SMILES strings for molecules similar to the lead molecule.
+Given the lead molecule: {0}, generate 1 new SMILES strings for molecules similar to the lead molecule.
 For each molecule you suggest, verify the SMILES, check if it is already known, and
 calculate its density and synthetic accessibility. Only return molecules with higher density and
 the same or lower synthetic accessibility compared to the lead molecule.
@@ -43,6 +43,9 @@ class MoleculeOutputSchema(BaseModel):
             if not helper_funcs.verify_smiles(smiles):
                 raise ValueError(f"Invalid SMILES string: {smiles}")
         return smiles_list
+
+    def as_list(self) -> List[str]:
+        return self.smiles_list
 
 
 SCHEMA_PROMPT = f"""
