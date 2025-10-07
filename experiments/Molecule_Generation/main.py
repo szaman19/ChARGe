@@ -1,5 +1,6 @@
 import argparse
 import asyncio
+from time import time
 
 from LMOExperiment import LMOExperiment as LeadMoleculeOptimization
 import os
@@ -18,6 +19,19 @@ parser.add_argument(
     type=str,
     default=None,
     help="Path to an existing MCP server script",
+)
+parser.add_argument(
+    "--json_file",
+    type=str,
+    default="known_molecules.json",
+    help="Path to the JSON file containing known molecules.",
+)
+
+parser.add_argument(
+    "--max_iterations",
+    type=int,
+    default=5,
+    help="Maximum number of iterations to run the experiment.",
 )
 
 # Add standard CLI arguments
@@ -55,6 +69,8 @@ if __name__ == "__main__":
             server_url=server_urls,
         )
 
+    mol_file_path = args.json_file
+
     lead_molecule_smiles = args.lead_molecule
     logger.info(f"Starting experiment with lead molecule: {lead_molecule_smiles}")
     parent_id = 0
@@ -65,19 +81,25 @@ if __name__ == "__main__":
 
     # Start the db with the lead molecule
     helper_funcs.save_list_to_json_file(
-        data=[lead_molecule_data], file_path="known_molecules.json"
+        data=[lead_molecule_data], file_path=mol_file_path
     )
-    logger.info(f"Storing found molecules in known_molecules.json")
+    logger.info(f"Storing found molecules in {mol_file_path}")
 
     # Run the experiment in a loop
     new_molecules = helper_funcs.get_list_from_json_file(
-        file_path="known_molecules.json"
+        file_path=mol_file_path
     )  # Start with known molecules
 
     mol_data = [lead_molecule_data]
 
+    max_iterations = args.max_iterations
+    iteration = 0
     while True:
         try:
+            iteration += 1
+            if iteration >= max_iterations:
+                logger.info("Reached maximum iterations. Ending experiment.")
+                break
             results = asyncio.run(runner.run())
             results = results.as_list()  # Convert to list of strings
             logger.info(f"New molecules generated: {results}")
@@ -107,6 +129,8 @@ if __name__ == "__main__":
 
             # reset the runner for the next iteration
             runner.reset()
+
+            time.sleep(2)  # To avoid rate limiting
 
             if len(new_molecules) >= 5:  # Collect 5 new molecules then stop
                 break

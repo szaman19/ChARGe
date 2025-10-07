@@ -14,15 +14,11 @@ for binding affinity and synthetic accessibility.
 
 USER_PROMPT = """
 Given the lead molecule: {0}, generate 1 new SMILES strings for molecules similar to the lead molecule.
-For each molecule you suggest, verify the SMILES, check if it is already known, and
-calculate its density and synthetic accessibility. Only return molecules with higher density and
-the same or lower synthetic accessibility compared to the lead molecule.
-If a molecule is known or doesn't fit the criteria, move on and
-generate a different one and try again.
+For each molecule you suggest, verify the SMILES, check if it is already known, and calculate its density and synthetic accessibility. Do the checks in order.
+Only return molecules with higher density and the same or lower synthetic accessibility compared to the lead molecule.
+If a molecule is known or doesn't fit the criteria, move on and generate a different one and try again.
 Return a list of the unique molecules.
 
-For example, the output format should be:
-["CCO", "CCN", "CCC"]
 """
 
 
