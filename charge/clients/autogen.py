@@ -246,24 +246,28 @@ class AutoGenClient(Client):
         workbenches = [McpWorkbench(server) for server in self.servers]
 
         # Start the servers
-        for workbench in workbenches:
-            await workbench.start()
 
-        #     # TODO: Convert this to use custom agent in the future
-        agent = AssistantAgent(
-            name="Assistant",
-            model_client=self.model_client,
-            system_message=system_prompt,
-            workbench=workbenches if len(workbenches) > 0 else None,
-            max_tool_iterations=self.max_tool_calls,
-            reflect_on_tool_use=True,
-            # output_content_type=structured_output_schema,
-        )
+        await asyncio.gather(*[workbench.start() for workbench in workbenches])
 
-        answer_invalid, result = await self.step(agent, user_prompt)
+        try:
+            # TODO: Convert this to use custom agent in the future
+            agent = AssistantAgent(
+                name="Assistant",
+                model_client=self.model_client,
+                system_message=system_prompt,
+                workbench=workbenches if len(workbenches) > 0 else None,
+                max_tool_iterations=self.max_tool_calls,
+                reflect_on_tool_use=True,
+                # output_content_type=structured_output_schema,
+            )
 
-        for workbench in workbenches:
-            await workbench.stop()
+            answer_invalid, result = await self.step(agent, user_prompt)
+
+        finally:
+            open_workbenches = [
+                workbench for workbench in workbenches if workbench.is_open
+            ]
+            await asyncio.gather(*[workbench.stop() for workbench in workbenches])
 
         if answer_invalid:
             # Maybe convert this to a warning and let the user handle it

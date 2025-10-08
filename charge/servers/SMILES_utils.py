@@ -17,7 +17,8 @@ except ImportError:
 from loguru import logger
 import logging
 
-# logging.basicConfig(level=logging.DEBUG) This should be configured by the user of the module
+# logging.basicConfig(level=logging.DEBUG)
+# Let's set this on the user side of the module
 
 
 def canonicalize_smiles(smiles: str) -> str:
