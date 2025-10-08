@@ -155,7 +155,10 @@ class AutoGenClient(Client):
                 for su in server_url:
                     self.servers.append(
                         SseServerParams(
-                            url=su, timeout=self.mcp_timeout, **(server_kwargs or {})
+                            url=su,
+                            timeout=self.mcp_timeout,
+                            sse_read_timeout=self.mcp_timeout,
+                            **(server_kwargs or {}),
                         )
                     )
 
