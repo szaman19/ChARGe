@@ -44,6 +44,9 @@ if __name__ == "__main__":
     myexperiment = LeadMoleculeOptimization(lead_molecule=args.lead_molecule)
     server_path = args.server_path
     server_urls = args.server_urls
+    assert server_urls is not None, "Server URLs must be provided"
+    for url in server_urls:
+        assert url.endswith("/sse"), f"Server URL {url} must end with /sse"
 
     if args.client == "gemini":
         from charge.clients.gemini import GeminiClient
