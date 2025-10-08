@@ -264,9 +264,7 @@ class AutoGenClient(Client):
             answer_invalid, result = await self.step(agent, user_prompt)
 
         finally:
-            open_workbenches = [
-                workbench for workbench in workbenches if workbench.is_open
-            ]
+
             await asyncio.gather(*[workbench.stop() for workbench in workbenches])
 
         if answer_invalid:
