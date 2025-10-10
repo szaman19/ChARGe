@@ -6,9 +6,9 @@
 ################################################################################
 
 from mcp.server.fastmcp import FastMCP
-from charge.servers.SMARTS_reactions import SMARTS_mcp
 from charge.servers.SMILES_utils import verify_smiles, canonicalize_smiles
-import click
+import argparse
+
 
 template_free_mcp = FastMCP("template_free_reaction_server")
 
@@ -17,25 +17,24 @@ template_free_mcp.tool()(canonicalize_smiles)
 
 
 if __name__ == "__main__":
-    click.echo("Starting SMARTS reaction server...")
-
-    @click.command()
-    @click.option(
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
         "--exp_type",
         default="template",
-        type=click.Choice(["template", "template-free"]),
+        choices=["template", "template-free"],
     )
-    def run_reaction_server(exp_type):
-        if exp_type == "template":
+    args = parser.parse_args()
+    exp_type = args.exp_type
 
-            SMARTS_mcp.run(
-                transport="sse",
-            )
-        elif exp_type == "template-free":
-            template_free_mcp.run(
-                transport="sse",
-            )
-        else:
-            raise ValueError(f"Unknown experiment type: {exp_type}")
+    if exp_type == "template":
+        from charge.servers.SMARTS_reactions import SMARTS_mcp
 
-    run_reaction_server()
+        SMARTS_mcp.run(
+            transport="sse",
+        )
+    elif exp_type == "template-free":
+        template_free_mcp.run(
+            transport="sse",
+        )
+    else:
+        raise ValueError(f"Unknown experiment type: {exp_type}")
