@@ -33,6 +33,10 @@ if __name__ == "__main__":
             transport="sse",
         )
     elif exp_type == "template-free":
+
+        from charge.servers.AiZynthTools import is_molecule_synthesizable
+
+        template_free_mcp.tool()(is_molecule_synthesizable)
         template_free_mcp.run(
             transport="sse",
         )
