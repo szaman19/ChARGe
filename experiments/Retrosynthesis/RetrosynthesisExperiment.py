@@ -11,7 +11,7 @@ TEMPLATE_SYSTEM_PROMPT = (
     + " For each reaction SMARTS verify it."
     + " If the reaction SMARTS is valid, check if the reactants are valid SMILES."
     + " If they are valid, check if the reaction can be performed"
-    + " Use the diagnose tools to fix any issues that arise."
+    + " Use the diagnosis tools to fix any issues that arise."
     + " and return the reaction SMARTS, reactants, and products."
     + " Prefer reactions that are more likely to be performed in a lab "
     + " setting. \n\n"
