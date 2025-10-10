@@ -1,6 +1,9 @@
 import argparse
 import asyncio
-from RetrosynthesisExperiment import RetrosynthesisExperiment as Retrosynthesis
+from RetrosynthesisExperiment import (
+    RetrosynthesisExperiment,
+    TemplateFreeRetrosynthesisExperiment,
+)
 import os
 from charge.clients.Client import Client
 
@@ -28,6 +31,13 @@ parser.add_argument(
 # Add standard CLI arguments
 Client.add_std_parser_arguments(parser)
 
+parser.add_argument(
+    "--exp_type",
+    default="template",
+    type=argparse.Choice(["template", "template-free"]),
+    help="Type of retrosynthesis experiment to run",
+)
+
 args = parser.parse_args()
 
 if __name__ == "__main__":
@@ -37,7 +47,13 @@ if __name__ == "__main__":
     user_prompt = args.user_prompt
     assert user_prompt is not None, "User prompt must be provided"
 
-    myexperiment = Retrosynthesis(user_prompt=user_prompt)
+    if args.exp_type == "template":
+
+        myexperiment = RetrosynthesisExperiment(user_prompt=user_prompt)
+    elif args.exp_type == "template-free":
+        myexperiment = TemplateFreeRetrosynthesisExperiment(user_prompt=user_prompt)
+    else:
+        raise ValueError(f"Unknown experiment type: {args.exp_type}")
 
     if args.client == "gemini":
         from charge.clients.gemini import GeminiClient
@@ -48,7 +64,9 @@ if __name__ == "__main__":
     elif args.client == "autogen":
         from charge.clients.autogen import AutoGenClient
 
-        (model, backend, API_KEY, kwargs) = AutoGenClient.configure(args.model, args.backend)
+        (model, backend, API_KEY, kwargs) = AutoGenClient.configure(
+            args.model, args.backend
+        )
 
         runner = AutoGenClient(
             experiment_type=myexperiment,
