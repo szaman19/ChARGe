@@ -34,7 +34,7 @@ Client.add_std_parser_arguments(parser)
 parser.add_argument(
     "--exp_type",
     default="template",
-    type=argparse.Choice(["template", "template-free"]),
+    choices=["template", "template-free"],
     help="Type of retrosynthesis experiment to run",
 )
 
