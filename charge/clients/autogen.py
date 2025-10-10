@@ -116,6 +116,7 @@ class AutoGenClient(Client):
                     model=model,
                     model_info=model_info,
                     model_context=ReasoningModelContext(),
+                    think=True,
                 )
             else:
                 from autogen_ext.models.openai import OpenAIChatCompletionClient
