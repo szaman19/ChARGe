@@ -28,6 +28,7 @@ parser.add_argument(
     + "including any further constraints",
 )
 
+
 # Add standard CLI arguments
 Client.add_std_parser_arguments(parser)
 
@@ -43,7 +44,11 @@ args = parser.parse_args()
 if __name__ == "__main__":
 
     server_path = args.server_path
-    assert server_path is not None, "Server path must be provided"
+
+    server_urls = args.server_urls
+    if server_urls is not None:
+        for server_url in server_urls:
+            assert server_url.endswith("/sse"), "Server URL must end with a '/'"
     user_prompt = args.user_prompt
     assert user_prompt is not None, "User prompt must be provided"
 
@@ -75,6 +80,7 @@ if __name__ == "__main__":
             api_key=API_KEY,
             model_kwargs=kwargs,
             server_path=server_path,
+            server_url=server_url,
         )
 
         results = asyncio.run(runner.run())
