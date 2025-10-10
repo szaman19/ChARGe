@@ -37,3 +37,5 @@ if __name__ == "__main__":
             )
         else:
             raise ValueError(f"Unknown experiment type: {exp_type}")
+
+    run_reaction_server()
