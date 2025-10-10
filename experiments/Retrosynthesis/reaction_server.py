@@ -20,7 +20,7 @@ if __name__ == "__main__":
     click.echo("Starting SMARTS reaction server...")
 
     @click.command()
-    @click.argument(
+    @click.option(
         "--exp_type",
         default="template",
         type=click.Choice(["template", "template-free"]),
