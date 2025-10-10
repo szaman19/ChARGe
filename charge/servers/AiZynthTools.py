@@ -12,6 +12,7 @@ import json
 
 from dataclasses import dataclass, asdict
 from typing import Dict, List, Optional
+from loguru import logger
 
 
 @dataclass
@@ -136,6 +137,7 @@ def is_molecule_synthesizable(smiles: str) -> bool:
     Raises:
         ValueError:  If the molecule is not valid.
     """
+    logger.info(f"Checking if molecule {smiles} is synthesizable.")
 
     RetroPlanner.initialize()
     assert RetroPlanner.finder is not None
