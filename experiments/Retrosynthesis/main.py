@@ -16,7 +16,7 @@ parser.add_argument(
 parser.add_argument(
     "--server-path",
     type=str,
-    default="reaction_server.py",
+    default=None,
     help="Path to an existing MCP server script",
 )
 
@@ -80,7 +80,7 @@ if __name__ == "__main__":
             api_key=API_KEY,
             model_kwargs=kwargs,
             server_path=server_path,
-            server_url=server_url,
+            server_url=server_urls,
         )
 
         results = asyncio.run(runner.run())
