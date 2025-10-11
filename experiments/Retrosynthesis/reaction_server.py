@@ -19,7 +19,7 @@ template_free_mcp.tool()(canonicalize_smiles)
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--exp_type",
+        "--exp-type",
         default="template",
         choices=["template", "template-free"],
     )
