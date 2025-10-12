@@ -1,3 +1,9 @@
+################################################################################
+## Copyright 2025 Lawrence Livermore National Security, LLC. and Binghamton University.
+## See the top-level LICENSE file for details.
+##
+## SPDX-License-Identifier: Apache-2.0
+################################################################################
 try:
     from autogen_agentchat.agents import AssistantAgent, UserProxyAgent
     from autogen_core.model_context import UnboundedChatCompletionContext
