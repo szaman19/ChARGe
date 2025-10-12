@@ -38,7 +38,8 @@ TEMPLATE_FREE_SYSTEM_PROMPT = (
     + " be provided as a tuple of reactants as SMILES and the product as SMILES."
     + " Perform only single step retrosynthesis. Make sure the SMILES strings are"
     + " valid. Use tools to verify the SMILES strings and diagnose any issues that arise."
-    + " "
+    + " Ensure that the reactants you provide are synthesizable using the tools provided."
+    + " Prefer reactions that are more likely to be performed in a lab setting. \n\n"
 )
 
 

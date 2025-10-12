@@ -85,4 +85,6 @@ if __name__ == "__main__":
 
         results = asyncio.run(runner.run())
 
+        breakpoint()
+
         print(f"Experiment completed. Results: {results}")

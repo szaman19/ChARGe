@@ -34,8 +34,6 @@ class ReasoningModelContext(UnboundedChatCompletionContext):
         # Filter out thought field from AssistantMessage.
         messages_out: List[LLMMessage] = []
         for message in messages:
-            if isinstance(message, AssistantMessage):
-                message.thought = None
             messages_out.append(message)
         return messages_out
 
@@ -214,6 +212,7 @@ class AutoGenClient(Client):
 
     async def step(self, agent, task: str):
         result = await agent.run(task=task)
+        breakpoint()
 
         for msg in result.messages:
             if isinstance(msg, TextMessage):

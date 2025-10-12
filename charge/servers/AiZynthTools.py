@@ -145,6 +145,7 @@ def is_molecule_synthesizable(smiles: str) -> bool:
 
     tree, stats, routes = RetroPlanner.plan(smiles)
     if len(routes) == 0:
+        logger.info(f"Molecule {smiles} is not synthesizable.")
         return False
     for route in routes:
         path = ReactionPath(route=route)
@@ -153,5 +154,7 @@ def is_molecule_synthesizable(smiles: str) -> bool:
             path.nodes[node_id].purchasable is True for node_id in path.leaf_nodes
         )
         if all_purchasable:
+            logger.info(f"Molecule {smiles} is synthesizable.")
             return True
+    logger.info(f"Molecule {smiles} is not synthesizable.")
     return False
