@@ -73,6 +73,34 @@ if __name__ == "__main__":
             args.model, args.backend
         )
 
+        def thoughts_callback(assistant_message):
+            # print("In callback:", assistant_message)
+            if assistant_message.type == "UserMessage":
+                print(f"User: {assistant_message.content}")
+            elif assistant_message.type == "AssistantMessage":
+
+                if assistant_message.thought is not None:
+                    print(f"Model thought: {assistant_message.thought}")
+                if isinstance(assistant_message.content, list):
+                    for item in assistant_message.content:
+                        if hasattr(item, "name") and hasattr(item, "arguments"):
+                            print(
+                                f"Function call: {item.name} with args {item.arguments}"
+                            )
+                        else:
+                            print(f"Model: {item}")
+            elif assistant_message.type == "FunctionExecutionResultMessage":
+
+                for result in assistant_message.content:
+                    if result.is_error:
+                        print(
+                            f"Function {result.name} errored with output: {result.content}"
+                        )
+                    else:
+                        print(f"Function {result.name} returned: {result.content}")
+            else:
+                print("Model: ", assistant_message.message.content)
+
         runner = AutoGenClient(
             experiment_type=myexperiment,
             model=model,
@@ -81,6 +109,7 @@ if __name__ == "__main__":
             model_kwargs=kwargs,
             server_path=server_path,
             server_url=server_urls,
+            thoughts_callback=thoughts_callback,
         )
 
         results = asyncio.run(runner.run())
