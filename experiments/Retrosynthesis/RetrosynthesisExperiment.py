@@ -5,6 +5,7 @@ TEMPLATE_SYSTEM_PROMPT = (
     "You are a retrosynthesis expert. Your task is to provide a retrosynthetic "
     + "pathway for the target molecule provided by the user. The pathway should"
     + " be provided as a tuple of reactants as SMILES and Reaction SMARTS."
+    + " Put your thinking tokens in <think> </think> tags."
     + " Perform only single step retrosynthesis. Make sure the SMILES strings are"
     + " valid. Make sure the reaction SMARTS is valid. So you will generate a"
     + " reaction SMARTS and reactants for a given molecule. "
