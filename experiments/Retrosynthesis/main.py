@@ -68,6 +68,7 @@ if __name__ == "__main__":
         runner = GeminiClient(experiment_type=myexperiment, api_key=client_key)
     elif args.client == "autogen":
         from charge.clients.autogen import AutoGenClient
+        from charge.clients.autogen_utils import thoughts_callback
 
         (model, backend, API_KEY, kwargs) = AutoGenClient.configure(
             args.model, args.backend
@@ -81,6 +82,7 @@ if __name__ == "__main__":
             model_kwargs=kwargs,
             server_path=server_path,
             server_url=server_urls,
+            thoughts_callback=thoughts_callback,
         )
 
         results = asyncio.run(runner.run())
