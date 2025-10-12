@@ -8,7 +8,7 @@ try:
         AssistantMessage,
     )
     from autogen_ext.tools.mcp import StdioServerParams, McpWorkbench, SseServerParams
-    from autogen_agentchat.messages import TextMessage
+    from autogen_agentchat.messages import TextMessage, ThoughtEvent
     from autogen_agentchat.conditions import HandoffTermination, TextMentionTermination
     from autogen_agentchat.teams import RoundRobinGroupChat
     from autogen_agentchat.ui import Console
@@ -22,22 +22,42 @@ import asyncio
 from functools import partial
 import os
 from charge.clients.Client import Client
-from typing import Type, Optional, Dict, Union, List
+from typing import Type, Optional, Dict, Union, List, Callable
 from charge.Experiment import Experiment
 
 
 class ReasoningModelContext(UnboundedChatCompletionContext):
     """A model context for reasoning models."""
 
+    def __init__(self, callback: Optional[Callable] = None):
+        super().__init__()
+        self.callback = callback
+
     async def get_messages(self) -> List[LLMMessage]:
         messages = await super().get_messages()
         # Filter out thought field from AssistantMessage.
         messages_out: List[LLMMessage] = []
         for message in messages:
-            if isinstance(message, AssistantMessage):
-                message.thought = None
             messages_out.append(message)
         return messages_out
+
+    async def add_message(
+        self,
+        assistant_message: AssistantMessage,
+    ) -> None:
+
+        await super().add_message(assistant_message)
+
+        if self.callback:
+            self.callback(assistant_message)
+        else:
+            if (
+                hasattr(assistant_message, "thought")
+                and assistant_message.thought is not None
+            ):
+                print(f"Model thought: {assistant_message.thought}")
+            else:
+                print("Model: ", assistant_message.content)
 
 
 class AutoGenClient(Client):
@@ -59,6 +79,7 @@ class AutoGenClient(Client):
         check_response: bool = False,
         max_multi_turns: int = 100,
         mcp_timeout: int = 60,
+        thoughts_callback: Optional[Callable] = None,
     ):
         """Initializes the AutoGenClient.
 
@@ -85,6 +106,8 @@ class AutoGenClient(Client):
                                              Defaults to False (Will be set to True in the future).
             max_multi_turns (int, optional): Maximum number of multi-turn interactions. Defaults to 100.
             mcp_timeout (int, optional): Timeout in seconds for MCP server responses. Defaults to 60 s.
+            thoughts_callback (Optional[Callable], optional): Optional callback function to handle model thoughts.
+                                                            Defaults to None.
         Raises:
             ValueError: If neither `server_path` nor `server_url` is provided and MCP servers cannot be generated.
         """
@@ -98,6 +121,7 @@ class AutoGenClient(Client):
         self.check_response = check_response
         self.max_multi_turns = max_multi_turns
         self.mcp_timeout = mcp_timeout
+        self.thoughts_callback = thoughts_callback
 
         if model_client is not None:
             self.model_client = model_client
@@ -115,7 +139,6 @@ class AutoGenClient(Client):
                 self.model_client = OllamaChatCompletionClient(
                     model=model,
                     model_info=model_info,
-                    model_context=ReasoningModelContext(),
                 )
             else:
                 from autogen_ext.models.openai import OpenAIChatCompletionClient
@@ -272,6 +295,7 @@ class AutoGenClient(Client):
                 workbench=workbenches if len(workbenches) > 0 else None,
                 max_tool_iterations=self.max_tool_calls,
                 reflect_on_tool_use=True,
+                model_context=ReasoningModelContext(self.thoughts_callback),
                 # output_content_type=structured_output_schema,
             )
 
