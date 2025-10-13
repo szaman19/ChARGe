@@ -14,12 +14,13 @@ try:
     )
     from openai import AsyncOpenAI
     from autogen_ext.agents.openai import OpenAIAgent
-    from autogen_ext.tools.mcp import  McpWorkbench
+    from autogen_ext.tools.mcp import McpWorkbench
 except ImportError:
     raise ImportError(
         "Please install the autogen-agentchat package to use this module."
     )
 from typing import Type, Optional, Dict, Union, List, Callable
+
 
 class ReasoningModelContext(UnboundedChatCompletionContext):
     """A model context for reasoning models."""
@@ -66,33 +67,32 @@ def thoughts_callback(assistant_message):
         if isinstance(assistant_message.content, list):
             for item in assistant_message.content:
                 if hasattr(item, "name") and hasattr(item, "arguments"):
-                    print(
-                        f"Function call: {item.name} with args {item.arguments}"
-                    )
+                    print(f"Function call: {item.name} with args {item.arguments}")
                 else:
                     print(f"Model: {item}")
     elif assistant_message.type == "FunctionExecutionResultMessage":
 
         for result in assistant_message.content:
             if result.is_error:
-                print(
-                    f"Function {result.name} errored with output: {result.content}"
-                )
+                print(f"Function {result.name} errored with output: {result.content}")
             else:
                 print(f"Function {result.name} returned: {result.content}")
     else:
         print("Model: ", assistant_message.message.content)
 
+
 def generate_agent(
-        model_client: Union[AsyncOpenAI,ChatCompletionClient],
-        model: str,
-        system_prompt: str,
-        workbenches: List[McpWorkbench],
-        max_tool_calls: int):
+    model_client: Union[AsyncOpenAI, ChatCompletionClient],
+    model: str,
+    system_prompt: str,
+    workbenches: List[McpWorkbench],
+    max_tool_calls: int,
+    callback: Optional[Callable] = None,
+):
     if isinstance(model_client, AsyncOpenAI):
         agent = OpenAIAgent(
             name="Assistant",
-            description='ChARGe OpenAIAgent',
+            description="ChARGe OpenAIAgent",
             client=model_client,
             model=model,
             instructions=system_prompt,
@@ -106,7 +106,9 @@ def generate_agent(
             workbench=workbenches if len(workbenches) > 0 else None,
             max_tool_iterations=max_tool_calls,
             reflect_on_tool_use=True,
-            model_context=ReasoningModelContext(thoughts_callback),
+            model_context=ReasoningModelContext(
+                thoughts_callback if callback is None else callback
+            ),
             # output_content_type=structured_output_schema,
         )
     else:

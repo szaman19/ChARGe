@@ -14,6 +14,7 @@ try:
         AssistantMessage,
     )
     from openai import AsyncOpenAI
+
     # from autogen_ext.agents.openai import OpenAIAgent
     from autogen_ext.tools.mcp import StdioServerParams, McpWorkbench, SseServerParams
     from autogen_agentchat.messages import TextMessage, ThoughtEvent
@@ -34,6 +35,7 @@ from charge.clients.autogen_utils import generate_agent
 from typing import Type, Optional, Dict, Union, List, Callable
 from charge.Experiment import Experiment
 
+
 class AutoGenClient(Client):
     def __init__(
         self,
@@ -42,7 +44,7 @@ class AutoGenClient(Client):
         max_retries: int = 3,
         backend: str = "openai",
         model: str = "gpt-4",
-        model_client: Optional[Union[AsyncOpenAI,ChatCompletionClient]] = None,
+        model_client: Optional[Union[AsyncOpenAI, ChatCompletionClient]] = None,
         api_key: Optional[str] = None,
         model_info: Optional[dict] = None,
         model_kwargs: Optional[dict] = None,
@@ -130,6 +132,7 @@ class AutoGenClient(Client):
                     )
                 else:
                     from autogen_ext.models.openai import OpenAIChatCompletionClient
+
                     self.model_client = OpenAIChatCompletionClient(
                         model=model,
                         api_key=api_key,
@@ -266,7 +269,14 @@ class AutoGenClient(Client):
         await asyncio.gather(*[workbench.start() for workbench in workbenches])
 
         try:
-            agent = generate_agent(self.model_client, self.model, system_prompt, workbenches, self.max_tool_calls)
+            agent = generate_agent(
+                self.model_client,
+                self.model,
+                system_prompt,
+                workbenches,
+                self.max_tool_calls,
+                self.thoughts_callback,
+            )
             answer_invalid, result = await self.step(agent, user_prompt)
 
         finally:
@@ -316,7 +326,9 @@ class AutoGenClient(Client):
         for workbench in wokbenches:
             await workbench.start()
 
-        agent = generate_agent(self.model_client, self.model, system_prompt, [], self.max_tool_calls)
+        agent = generate_agent(
+            self.model_client, self.model, system_prompt, [], self.max_tool_calls
+        )
 
         user = UserProxyAgent("USER", input_func=input)
         team = RoundRobinGroupChat(
