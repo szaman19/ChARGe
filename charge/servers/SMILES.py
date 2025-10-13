@@ -17,7 +17,12 @@ except ImportError:
 from loguru import logger
 import logging
 
-from charge.servers.server_utils import args
+from charge.servers.server_utils import add_server_arguments
+import argparse
+
+parser = argparse.ArgumentParser()
+add_server_arguments(parser)
+args = parser.parse_args()
 
 SMILES_mcp = FastMCP(
     "[RDKit-SMILES] Chem and BioInformatics MCP Server",
@@ -38,4 +43,3 @@ SMILES_mcp.tool()(smiles.verify_smiles)
 SMILES_mcp.tool()(smiles.get_synthesizability)
 
 SMILES_mcp.tool()(smiles.known_smiles)
-
