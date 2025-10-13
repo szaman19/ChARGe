@@ -1,4 +1,5 @@
 import argparse
+from mcp.server.fastmcp import FastMCP
 
 
 def add_server_arguments(parser: argparse.ArgumentParser) -> None:
@@ -13,3 +14,14 @@ def add_server_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--host", type=str, default="http://127.0.0.1", help="Host to run the server on"
     )
+    parser.add_argument(
+        '--transport', type=str,
+        help='MCP transport type',
+        choices=['stdio', 'streamable-http', 'sse'],
+        default='sse'
+    )
+
+
+def update_mcp_network(mcp: FastMCP, host: str, port: str):
+    mcp.settings.host = host
+    mcp.settings.port = port

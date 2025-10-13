@@ -13,7 +13,7 @@ import json
 import os
 from loguru import logger
 from charge.Experiment import Experiment
-from charge.servers.server_utils import args
+from charge.servers.server_utils import add_server_arguments
 from mcp.server.fastmcp import FastMCP
 from charge.clients.autogen import AutoGenClient
 from charge.clients.Client import Client
@@ -21,6 +21,10 @@ import asyncio
 from charge.servers import SMILES_utils
 import helper_funcs as hf
 import argparse
+
+parser = argparse.ArgumentParser()
+add_server_arguments(parser)
+args = parser.parse_args()
 
 mcp = FastMCP(
     "SMILES Diagnosis and retrieval MCP Server",
