@@ -119,7 +119,8 @@ class RetrosynthesisExperiment(Experiment):
             user_prompt=user_prompt,
         )
         self.system_prompt = TEMPLATE_SYSTEM_PROMPT
-        self.user_prompt = user_prompt
+        self.user_prompt = user_prompt + TEMPLATE_REACTION_SCHEMA_PROMPT
+        self.set_structured_output_schema(ReactionOutputSchema)
         print(
             "RetrosynthesisExperiment initialized with the provided prompts:"
             + f"\n{self.system_prompt}"
@@ -148,7 +149,8 @@ class TemplateFreeRetrosynthesisExperiment(Experiment):
             user_prompt=user_prompt,
         )
         self.system_prompt = TEMPLATE_FREE_SYSTEM_PROMPT
-        self.user_prompt = user_prompt
+        self.user_prompt = user_prompt + TEMPLATE_FREE_REACTION_SCHEMA_PROMPT
+        self.set_structured_output_schema(TemplateFreeReactionOutputSchema)
         print(
             "TemplateFreeRetrosynthesisExperiment initialized with the provided prompts:"
             + f"\n{self.system_prompt}"
