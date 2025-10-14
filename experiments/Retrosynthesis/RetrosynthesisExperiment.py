@@ -5,26 +5,6 @@ from pydantic import BaseModel, field_validator
 from charge.servers.SMARTS_reactions_utils import verify_reaction_SMARTS
 from charge.servers.SMILES_utils import verify_smiles
 
-TEMPLATE_SYSTEM_PROMPT = (
-    "You are a retrosynthesis expert. Your task is to provide a retrosynthetic "
-    + "pathway for the target molecule provided by the user. The pathway should"
-    + " be provided as a tuple of reactants as SMILES and Reaction SMARTS."
-    + " Put your thinking tokens in <think> </think> tags."
-    + " Perform only single step retrosynthesis. Make sure the SMILES strings are"
-    + " valid. Make sure the reaction SMARTS is valid. So you will generate a"
-    + " reaction SMARTS and reactants for a given molecule. "
-    + " For each reaction SMARTS verify it."
-    + " If the reaction SMARTS is valid, check if the reactants are valid SMILES."
-    + " If they are valid, check if the reaction can be performed"
-    + " Use the diagnosis tools to fix any issues that arise."
-    + " and return the reaction SMARTS, reactants, and products."
-    + " Prefer reactions that are more likely to be performed in a lab "
-    + " setting."
-    + LOG_PROGRESS_SYSTEM_PROMPT
-    + "\n\n"
-)
-
-
 class ReactionOutputSchema(BaseModel):
     """
     Structure output representing a valid reaction SMARTS and reactants.
@@ -49,13 +29,7 @@ class ReactionOutputSchema(BaseModel):
     @field_validator("reactants")
     @classmethod
     def validate_reactants(cls, reactants):
-        if not isinstance(reactants, list):
-            raise ValueError("reactants must be a list.")
-        for smiles in reactants:
-            if not isinstance(smiles, str):
-                raise ValueError("Each SMILES must be a string.")
-            if not verify_smiles(smiles):
-                raise ValueError(f"Invalid SMILES string: {smiles}")
+        _check_smiles_list(reactants)
         return reactants
     
     @field_validator("products")
@@ -63,15 +37,9 @@ class ReactionOutputSchema(BaseModel):
     def validate_products(cls, products):
         # TODO: Dynamically generate this based on the input molecule
         # to ensure the product is the correct molecule.
-        if not isinstance(products, list):
-            raise ValueError("products must be a list.")
-        for smiles in products:
-            if not isinstance(smiles, str):
-                raise ValueError("Each SMILES must be a string.")
-            if not verify_smiles(smiles):
-                raise ValueError(f"Invalid SMILES string: {smiles}")
+        _check_smiles_list(products)
         return products
-    
+
     def as_dict(self) -> dict:
         return {
             "reasoning_summary": self.reasoning_summary,
@@ -80,7 +48,65 @@ class ReactionOutputSchema(BaseModel):
             "products": self.products,
         }
 
-class 
+class TemplateFreeReactionOutputSchema(BaseModel):
+    """
+    Structure output representing a valid list of reactants and products.
+    """
+
+    reasoning_summary: str
+    reactants: List[str]
+    products: List[str]
+
+    @field_validator("reactants")
+    @classmethod
+    def validate_reactants(cls, reactants):
+        _check_smiles_list(reactants)
+        return reactants
+    
+    @field_validator("products")
+    @classmethod
+    def validate_products(cls, products):
+        _check_smiles_list(products)
+        return products
+
+TEMPLATE_REACTION_SCHEMA_PROMPT = f"""
+Return your answer as a JSON object matching this schema:
+{ReactionOutputSchema.model_json_schema()}
+"""
+
+TEMPLATE_FREE_REACTION_SCHEMA_PROMPT = f"""
+Return your answer as a JSON object matching this schema:
+{TemplateFreeReactionOutputSchema.model_json_schema()}
+"""
+
+TEMPLATE_SYSTEM_PROMPT = (
+    "You are a retrosynthesis expert. Your task is to provide a retrosynthetic "
+    + "pathway for the target molecule provided by the user. The pathway should"
+    + " be provided as a tuple of reactants as SMILES and Reaction SMARTS."
+    + " Put your thinking tokens in <think> </think> tags."
+    + " Perform only single step retrosynthesis. Make sure the SMILES strings are"
+    + " valid. Make sure the reaction SMARTS is valid. So you will generate a"
+    + " reaction SMARTS and reactants for a given molecule. "
+    + " For each reaction SMARTS verify it."
+    + " If the reaction SMARTS is valid, check if the reactants are valid SMILES."
+    + " If they are valid, check if the reaction can be performed"
+    + " Use the diagnosis tools to fix any issues that arise."
+    + " and return the reaction SMARTS, reactants, and products."
+    + " Prefer reactions that are more likely to be performed in a lab "
+    + " setting."
+    + LOG_PROGRESS_SYSTEM_PROMPT
+    + "\n\n"
+)
+
+
+def _check_smiles_list(smiles_list: List[str]) -> None:
+    if not isinstance(smiles_list, list):
+        raise ValueError("smiles_list must be a list.")
+    for smiles in smiles_list:
+        if not isinstance(smiles, str):
+            raise ValueError("Each SMILES must be a string.")
+        if not verify_smiles(smiles):
+            raise ValueError(f"Invalid SMILES string: {smiles}")
 
 
 class RetrosynthesisExperiment(Experiment):
