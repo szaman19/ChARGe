@@ -125,6 +125,7 @@ class RetrosynthesisExperiment(Experiment):
             "RetrosynthesisExperiment initialized with the provided prompts:"
             + f"\n{self.system_prompt}"
             + f"\n{self.user_prompt}"
+            + f"\n{TEMPLATE_SYSTEM_PROMPT}"
         )
 
 
@@ -155,4 +156,5 @@ class TemplateFreeRetrosynthesisExperiment(Experiment):
             "TemplateFreeRetrosynthesisExperiment initialized with the provided prompts:"
             + f"\n{self.system_prompt}"
             + f"\n{self.user_prompt}"
+            + f"\n{TEMPLATE_FREE_SYSTEM_PROMPT}"
         )
