@@ -33,7 +33,7 @@ import os
 from charge.clients.Client import Client
 from charge.clients.autogen_utils import generate_agent
 from typing import Type, Optional, Dict, Union, List, Callable
-from charge.Experiment import Experiment
+from charge.experiments.Experiment import Experiment
 
 
 class AutoGenClient(Client):
@@ -181,7 +181,7 @@ class AutoGenClient(Client):
             if backend == "openai":
                 API_KEY = os.getenv("OPENAI_API_KEY")
                 default_model = "gpt-5"
-                kwargs["parallel_tool_calls"] = False
+                # kwargs["parallel_tool_calls"] = False
                 kwargs["reasoning_effort"] = "high"
             elif backend == "livai" or backend == "livchat":
                 API_KEY = os.getenv("OPENAI_API_KEY")
