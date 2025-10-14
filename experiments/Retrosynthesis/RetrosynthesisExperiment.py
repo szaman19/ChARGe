@@ -71,6 +71,13 @@ class TemplateFreeReactionOutputSchema(BaseModel):
         _check_smiles_list(products)
         return products
 
+    def as_dict(self) -> dict:
+        return {
+            "reasoning_summary": self.reasoning_summary,
+            "reactants_smiles_list": self.reactants_smiles_list,
+            "products_smiles_list": self.products_smiles_list,
+        }
+
 
 TEMPLATE_REACTION_SCHEMA_PROMPT = f"""
 Return your answer as a JSON object matching this schema:
