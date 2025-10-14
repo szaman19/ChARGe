@@ -1,5 +1,9 @@
 from charge.Experiment import Experiment
 from charge.servers.log_progress import LOG_PROGRESS_SYSTEM_PROMPT
+from typing import List, Optional
+from pydantic import BaseModel, field_validator
+from charge.servers.SMARTS_reactions_utils import verify_reaction_SMARTS
+from charge.servers.SMILES_utils import verify_smiles
 
 TEMPLATE_SYSTEM_PROMPT = (
     "You are a retrosynthesis expert. Your task is to provide a retrosynthetic "
@@ -19,6 +23,64 @@ TEMPLATE_SYSTEM_PROMPT = (
     + LOG_PROGRESS_SYSTEM_PROMPT
     + "\n\n"
 )
+
+
+class ReactionOutputSchema(BaseModel):
+    """
+    Structure output representing a valid reaction SMARTS and reactants.
+    """
+
+    reasoning_summary: str
+    reaction_smarts: str
+    reactants: List[str]
+    products: List[str]
+
+    @field_validator("reaction_smarts")
+    @classmethod
+    def validate_reaction_smarts(cls, reaction_smarts):
+        if not isinstance(reaction_smarts, str):
+            raise ValueError("reaction_smarts must be a string.")
+        if len(reaction_smarts) == 0:
+            raise ValueError("reaction_smarts cannot be empty.")
+        if not verify_reaction_SMARTS(reaction_smarts)
+            raise ValueError(f"Invalid reaction SMARTS: {reaction_smarts}")
+        return reaction_smarts
+
+    @field_validator("reactants")
+    @classmethod
+    def validate_reactants(cls, reactants):
+        if not isinstance(reactants, list):
+            raise ValueError("reactants must be a list.")
+        for smiles in reactants:
+            if not isinstance(smiles, str):
+                raise ValueError("Each SMILES must be a string.")
+            if not verify_smiles(smiles):
+                raise ValueError(f"Invalid SMILES string: {smiles}")
+        return reactants
+    
+    @field_validator("products")
+    @classmethod
+    def validate_products(cls, products):
+        # TODO: Dynamically generate this based on the input molecule
+        # to ensure the product is the correct molecule.
+        if not isinstance(products, list):
+            raise ValueError("products must be a list.")
+        for smiles in products:
+            if not isinstance(smiles, str):
+                raise ValueError("Each SMILES must be a string.")
+            if not verify_smiles(smiles):
+                raise ValueError(f"Invalid SMILES string: {smiles}")
+        return products
+    
+    def as_dict(self) -> dict:
+        return {
+            "reasoning_summary": self.reasoning_summary,
+            "reaction_smarts": self.reaction_smarts,
+            "reactants": self.reactants,
+            "products": self.products,
+        }
+
+class 
 
 
 class RetrosynthesisExperiment(Experiment):

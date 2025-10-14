@@ -27,6 +27,7 @@ class MoleculeOutputSchema(BaseModel):
     Structure output representing a valid list of SMILES strings.
     """
 
+    reasoning_summary: str
     smiles_list: List[str]
 
     @field_validator("smiles_list")
@@ -43,6 +44,12 @@ class MoleculeOutputSchema(BaseModel):
 
     def as_list(self) -> List[str]:
         return self.smiles_list
+
+    def as_dict(self) -> dict:
+        return {
+            "reasoning_summary": self.reasoning_summary,
+            "smiles_list": self.smiles_list,
+        }
 
 
 SCHEMA_PROMPT = f"""
