@@ -5,6 +5,7 @@ from pydantic import BaseModel, field_validator
 from charge.servers.SMARTS_reactions_utils import verify_reaction_SMARTS
 from charge.servers.SMILES_utils import verify_smiles
 
+
 class ReactionOutputSchema(BaseModel):
     """
     Structure output representing a valid reaction SMARTS and reactants.
@@ -22,7 +23,7 @@ class ReactionOutputSchema(BaseModel):
             raise ValueError("reaction_smarts must be a string.")
         if len(reaction_smarts) == 0:
             raise ValueError("reaction_smarts cannot be empty.")
-        if not verify_reaction_SMARTS(reaction_smarts)
+        if not verify_reaction_SMARTS(reaction_smarts):
             raise ValueError(f"Invalid reaction SMARTS: {reaction_smarts}")
         return reaction_smarts
 
@@ -31,7 +32,7 @@ class ReactionOutputSchema(BaseModel):
     def validate_reactants(cls, reactants):
         _check_smiles_list(reactants)
         return reactants
-    
+
     @field_validator("products")
     @classmethod
     def validate_products(cls, products):
@@ -48,6 +49,7 @@ class ReactionOutputSchema(BaseModel):
             "products": self.products,
         }
 
+
 class TemplateFreeReactionOutputSchema(BaseModel):
     """
     Structure output representing a valid list of reactants and products.
@@ -62,12 +64,13 @@ class TemplateFreeReactionOutputSchema(BaseModel):
     def validate_reactants(cls, reactants):
         _check_smiles_list(reactants)
         return reactants
-    
+
     @field_validator("products")
     @classmethod
     def validate_products(cls, products):
         _check_smiles_list(products)
         return products
+
 
 TEMPLATE_REACTION_SCHEMA_PROMPT = f"""
 Return your answer as a JSON object matching this schema:
