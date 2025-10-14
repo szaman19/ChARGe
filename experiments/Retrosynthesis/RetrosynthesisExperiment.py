@@ -13,8 +13,8 @@ class ReactionOutputSchema(BaseModel):
 
     reasoning_summary: str
     reaction_smarts: str
-    reactants: List[str]
-    products: List[str]
+    reactants_smiles_list: List[str]
+    products_smiles_list: List[str]
 
     @field_validator("reaction_smarts")
     @classmethod
@@ -27,13 +27,13 @@ class ReactionOutputSchema(BaseModel):
             raise ValueError(f"Invalid reaction SMARTS: {reaction_smarts}")
         return reaction_smarts
 
-    @field_validator("reactants")
+    @field_validator("reactants_smiles_list")
     @classmethod
     def validate_reactants(cls, reactants):
         _check_smiles_list(reactants)
         return reactants
 
-    @field_validator("products")
+    @field_validator("products_smiles_list")
     @classmethod
     def validate_products(cls, products):
         # TODO: Dynamically generate this based on the input molecule
@@ -45,8 +45,8 @@ class ReactionOutputSchema(BaseModel):
         return {
             "reasoning_summary": self.reasoning_summary,
             "reaction_smarts": self.reaction_smarts,
-            "reactants": self.reactants,
-            "products": self.products,
+            "reactants_smiles_list": self.reactants_smiles_list,
+            "products_smiles_list": self.products_smiles_list,
         }
 
 
@@ -56,16 +56,16 @@ class TemplateFreeReactionOutputSchema(BaseModel):
     """
 
     reasoning_summary: str
-    reactants: List[str]
-    products: List[str]
+    reactants_smiles_list: List[str]
+    products_smiles_list: List[str]
 
-    @field_validator("reactants")
+    @field_validator("reactants_smiles_list")
     @classmethod
     def validate_reactants(cls, reactants):
         _check_smiles_list(reactants)
         return reactants
 
-    @field_validator("products")
+    @field_validator("products_smiles_list")
     @classmethod
     def validate_products(cls, products):
         _check_smiles_list(products)
@@ -138,8 +138,9 @@ TEMPLATE_FREE_SYSTEM_PROMPT = (
     + " be provided as a tuple of reactants as SMILES and the product as SMILES."
     + " Perform only single step retrosynthesis. Make sure the SMILES strings are"
     + " valid. Use tools to verify the SMILES strings and diagnose any issues that arise."
+    + " Use the appropriate return format."
     + LOG_PROGRESS_SYSTEM_PROMPT
-    + " "
+    + "\n\n"
 )
 
 
