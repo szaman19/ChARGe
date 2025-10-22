@@ -1,3 +1,7 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "charge"
 version = "0.1.0"
@@ -18,6 +22,10 @@ dependencies = [
 [tool.setuptools]
 packages = ["charge"]
 
+# This creates the console script
+[project.scripts]
+charge-install = "charge.install:main"
+
 [project.optional-dependencies]
 ollama = ["ollama>=0.5.0"]
 gemini = ["google-genai >=1.19.0"]
@@ -28,5 +36,6 @@ flask = ["transformers", "peft", "trl", "torch>=2.8.0"]
 # pip3 install --no-deps aizynthfinder reaction-utils
 aizynthfinder = ["paretoset", "rdchiral", "wrapt_timeout_decorator", "swifter", "apted", "scipy", "onnxruntime", "dask[dataframe]>=2025.9.0", "tables"]
 chemprop = ["chemprop>=2.2.0", "torch>=2.8.0", "lightning"]
+chemprice = []
 
-all = ["charge[ollama,gemini,autogen,rdkit,flask,aizynthfinder,chemprop]"]
+all = ["charge[ollama,gemini,autogen,rdkit,flask,aizynthfinder,chemprop,chemprice]"]
