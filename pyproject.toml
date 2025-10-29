@@ -41,6 +41,7 @@ flask = ["transformers", "peft", "trl", "torch>=2.8.0"]
 aizynthfinder = ["paretoset", "rdchiral", "wrapt_timeout_decorator", "swifter", "apted", "scipy", "onnxruntime", "dask[dataframe]>=2025.9.0", "tables"]
 chemprop = ["chemprop>=2.2.0", "torch>=2.8.0", "lightning"]
 chemprice = []
+test = ["pytest", "pytest-asyncio", "pytest-mock", "responses", "httpx", "requests-mock"]
 
 # Define a set of optional packages for use when deploying persistent data services
 pds = ["charge[aizynthfinder,autogen,rdkit,chemprice]"]
