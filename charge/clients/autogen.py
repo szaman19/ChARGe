@@ -279,7 +279,6 @@ class AutoGenAgent(Agent):
         return self.context_history
 
 
-# class
 class AutoGenPool(AgentPool):
     """
     An AutoGen agent pool that creates AutoGen agents.
