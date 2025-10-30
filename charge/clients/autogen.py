@@ -281,9 +281,8 @@ class AutoGenAgent(Agent):
 
         Args:
             output_callback (Optional[Callable], optional): Optional callback function to handle model output.
-                                                            Defaults to the cli_chat_callback function.
-                                                            This allows capturing model outputs in a custom
-                                                            callback such and print to console or log to a file
+                                                            Defaults to the cli_chat_callback function. This allows capturing model outputs in a custom
+                                                            callback such as printing to console or logging to a file
                                                             or websocket. Default is std.out.
         """
         agent_state = []
