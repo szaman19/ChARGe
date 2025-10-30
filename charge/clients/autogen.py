@@ -16,11 +16,9 @@ try:
     )
     from openai import AsyncOpenAI
 
-    from autogen_agentchat.base import Handoff
-
     # from autogen_ext.agents.openai import OpenAIAgent
     from autogen_ext.tools.mcp import StdioServerParams, McpWorkbench, SseServerParams
-    from autogen_agentchat.messages import TextMessage, ThoughtEvent
+    from autogen_agentchat.messages import TextMessage
     from autogen_agentchat.conditions import HandoffTermination, TextMentionTermination
     from autogen_agentchat.teams import RoundRobinGroupChat
     from autogen_agentchat.conditions import TextMentionTermination
