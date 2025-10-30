@@ -13,6 +13,8 @@ try:
         LLMMessage,
         AssistantMessage,
     )
+    from autogen_agentchat.ui._console import aprint
+    from autogen_agentchat.base import Response, TaskResult
     from openai import AsyncOpenAI
     from autogen_ext.agents.openai import OpenAIAgent
     from autogen_ext.tools.mcp import McpWorkbench, StdioServerParams, SseServerParams
@@ -91,6 +93,7 @@ def generate_agent(
     workbenches: List[McpWorkbench],
     max_tool_calls: int,
     callback: Optional[Callable] = None,
+    **kwargs,
 ):
     if isinstance(model_client, AsyncOpenAI):
         raise ValueError("ERROR: Incomplete Response API lacks tools.")
@@ -113,6 +116,7 @@ def generate_agent(
             model_context=ReasoningModelContext(
                 thoughts_callback if callback is None else callback
             ),
+            **kwargs,
             # output_content_type=structured_output_schema,
         )
     else:
@@ -153,3 +157,28 @@ async def list_client_tools(
         raise ValueError(f"ERROR: client has no tools.")
 
     return await _list_wb_tools(workbenches)
+
+
+async def CustomConsole(stream, message_callback):
+    last_processed = None
+    async for message in stream:
+        last_processed = await message_callback(message)
+    return last_processed
+
+
+async def cli_chat_callback(message):
+    if isinstance(message, TaskResult):
+        return message
+    elif isinstance(message, Response):
+        content = message.chat_message.to_text()
+        await aprint(content, end="", flush=True)
+        return content
+    else:
+        if message.source != "user":
+            await aprint(
+                f"{'-' * 10} {message.__class__.__name__} ({message.source}) {'-' * 10}",
+                end="\n",
+                flush=True,
+            )
+            await aprint(message.to_text(), end="", flush=True)
+        return None

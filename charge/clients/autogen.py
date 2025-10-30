@@ -16,12 +16,13 @@ try:
     )
     from openai import AsyncOpenAI
 
+    from autogen_agentchat.base import Handoff
+
     # from autogen_ext.agents.openai import OpenAIAgent
     from autogen_ext.tools.mcp import StdioServerParams, McpWorkbench, SseServerParams
     from autogen_agentchat.messages import TextMessage, ThoughtEvent
     from autogen_agentchat.conditions import HandoffTermination, TextMentionTermination
     from autogen_agentchat.teams import RoundRobinGroupChat
-    from autogen_agentchat.ui import Console
     from autogen_agentchat.conditions import TextMentionTermination
 
 except ImportError:
@@ -39,6 +40,8 @@ from charge.clients.autogen_utils import (
     _list_wb_tools,
     generate_agent,
     list_client_tools,
+    CustomConsole,
+    cli_chat_callback,
 )
 from typing import Any, Tuple, Type, Optional, Dict, Union, List, Callable, overload
 from charge.tasks.Task import Task
@@ -271,6 +274,52 @@ class AutoGenAgent(Agent):
         finally:
             await self.close_workbenches()
         return result.messages[-1].content
+
+    async def chat(self, output_callback: Optional[Callable] = None, **kwargs) -> list:
+        """
+        Starts a chat session with the agent.
+        """
+        agent_state = []
+
+        await self.setup_mcp_workbenches()
+        try:
+            agent = generate_agent(
+                self.model_client,
+                self.agent_name,
+                self.task.get_system_prompt(),
+                self.workbenches,
+                max_tool_calls=self.max_tool_calls,
+            )
+
+            _input = input("User: ")
+            team = RoundRobinGroupChat(
+                [agent],
+                max_turns=1,
+            )
+
+            stop_signal = False
+
+            while not stop_signal:
+                stream = team.run_stream(task=_input, output_task_messages=False)
+                await CustomConsole(
+                    stream,
+                    message_callback=(
+                        cli_chat_callback
+                        if output_callback is None
+                        else output_callback
+                    ),
+                )
+                print("\n" + "-" * 45)
+                _input = input("\nUser: ")
+                if _input.lower().strip() in ["exit", "quit"]:
+                    team_state = await team.save_state()
+                    agent_state.extend(team_state)
+                    stop_signal = True
+
+        finally:
+            await self.close_workbenches()
+            await self.model_client.close()
+        return agent_state
 
     def get_context_history(self) -> list:
         """
