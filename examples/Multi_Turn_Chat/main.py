@@ -3,7 +3,7 @@ import asyncio
 from charge.tasks.Task import Task
 from typing import Optional, Union
 from charge.clients.Client import Client
-from charge.clients.autogen import AutoGenClient, AutoGenPool
+from charge.clients.autogen import AutoGenPool
 
 parser = argparse.ArgumentParser()
 
