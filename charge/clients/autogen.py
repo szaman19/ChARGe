@@ -274,7 +274,10 @@ class AutoGenAgent(Agent):
         return result.messages[-1].content
 
     async def chat(
-        self, output_callback: Optional[Callable] = cli_chat_callback, **kwargs
+        self,
+        input_callback: Optional[Callable[[], str]] = None,
+        output_callback: Optional[Callable] = cli_chat_callback,
+        **kwargs,
     ) -> Any:
         """
         Starts a chat session with the agent.
@@ -300,7 +303,9 @@ class AutoGenAgent(Agent):
                 max_tool_calls=self.max_tool_calls,
             )
 
-            _input = input("User: ")
+            _input = (
+                input_callback() if input_callback is not None else input("\nUser: ")
+            )
             team = RoundRobinGroupChat(
                 [agent],
                 max_turns=1,
@@ -319,7 +324,11 @@ class AutoGenAgent(Agent):
                     ),
                 )
                 print("\n" + "-" * 45)
-                _input = input("\nUser: ")
+                _input = (
+                    input_callback()
+                    if input_callback is not None
+                    else input("\nUser: ")
+                )
                 if _input.lower().strip() in ["exit", "quit"]:
                     team_state = await team.save_state()
                     agent_state = team_state
