@@ -275,7 +275,7 @@ class AutoGenAgent(Agent):
 
     async def chat(
         self, output_callback: Optional[Callable] = cli_chat_callback, **kwargs
-    ) -> list:
+    ) -> Any:
         """
         Starts a chat session with the agent.
 
@@ -284,9 +284,12 @@ class AutoGenAgent(Agent):
                                                             Defaults to the cli_chat_callback function. This allows capturing model outputs in a custom
                                                             callback such as printing to console or logging to a file
                                                             or websocket. Default is std.out.
-        """
-        agent_state = []
 
+        Returns:
+            The state is returned as a nested dictionary: a dictionary with key agent_states,
+            which is a dictionary the agent names as keys and the state as values.
+        """
+        agent_state = {}
         await self.setup_mcp_workbenches()
         try:
             agent = generate_agent(
@@ -319,7 +322,7 @@ class AutoGenAgent(Agent):
                 _input = input("\nUser: ")
                 if _input.lower().strip() in ["exit", "quit"]:
                     team_state = await team.save_state()
-                    agent_state.extend(team_state)
+                    agent_state = team_state
                     stop_signal = True
 
         finally:
