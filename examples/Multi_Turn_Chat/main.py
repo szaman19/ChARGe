@@ -28,30 +28,15 @@ DEFAULT_SYSTEM_PROMPT = (
 )
 
 
-class ChargeChatTask(Task):
-    def __init__(
-        self,
-        system_prompt: Optional[str] = None,
-        server_urls: Optional[Union[str, list]] = None,
-    ):
-        # Use provided system prompt or fall back to default
-        if system_prompt is None:
-            system_prompt = DEFAULT_SYSTEM_PROMPT
-
-        super().__init__(system_prompt=system_prompt, user_prompt=None)
-        print("ChargeChatTask initialized with the provided prompts.")
-
-        self.system_prompt = system_prompt
-        self.user_prompt = None
-
-
 if __name__ == "__main__":
 
     args = parser.parse_args()
     server_url = args.server_urls
 
-    mytask = ChargeChatTask(
-        system_prompt=args.system_prompt,
+    mytask = Task(
+        system_prompt=(
+            DEFAULT_SYSTEM_PROMPT if args.system_prompt is None else args.system_prompt
+        ),
         server_urls=server_url,
     )
 
