@@ -275,9 +275,18 @@ class AutoGenAgent(Agent):
             await self.close_workbenches()
         return result.messages[-1].content
 
-    async def chat(self, output_callback: Optional[Callable] = None, **kwargs) -> list:
+    async def chat(
+        self, output_callback: Optional[Callable] = cli_chat_callback, **kwargs
+    ) -> list:
         """
         Starts a chat session with the agent.
+
+        Args:
+            output_callback (Optional[Callable], optional): Optional callback function to handle model output.
+                                                            Defaults to the cli_chat_callback function.
+                                                            This allows capturing model outputs in a custom
+                                                            callback such and print to console or log to a file
+                                                            or websocket. Default is std.out.
         """
         agent_state = []
 
