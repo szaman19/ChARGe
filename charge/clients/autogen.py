@@ -216,9 +216,9 @@ class AutoGenAgent(Agent):
             self.no_tools = True
             return
         self.workbenches = [McpWorkbench(server) for server in self.mcps]
-        await _list_wb_tools(self.workbenches)
 
         await asyncio.gather(*[workbench.start() for workbench in self.workbenches])
+        await _list_wb_tools(self.workbenches)
 
     async def close_workbenches(self) -> None:
         """
