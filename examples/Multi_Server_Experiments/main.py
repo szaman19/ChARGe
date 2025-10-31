@@ -1,9 +1,10 @@
 import argparse
 import asyncio
-from typing import Optional
+from typing import Optional, Union
+import charge
 from charge.tasks.Task import Task
 from charge.clients.Client import Client
-from charge.clients.autogen import AutoGenClient
+from charge.clients.autogen import AutoGenClient, AutoGenPool
 
 parser = argparse.ArgumentParser()
 
@@ -42,11 +43,14 @@ DEFAULT_USER_PROMPT = (
     "using the molecule pricing tool, and get a cheap molecule. "
 )
 
+
 class ChargeMultiServerTask(Task):
     def __init__(
         self,
         system_prompt: Optional[str] = None,
         user_prompt: Optional[str] = None,
+        server_urls: Optional[Union[str, list]] = None,
+        server_paths: Optional[Union[str, list]] = None,
     ):
         # Use provided prompts or fall back to defaults
         if system_prompt is None:
@@ -54,43 +58,35 @@ class ChargeMultiServerTask(Task):
         if user_prompt is None:
             user_prompt = DEFAULT_USER_PROMPT
 
-        super().__init__(system_prompt=system_prompt, user_prompt=user_prompt)
+        super().__init__(
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
+            server_urls=server_urls,
+            server_paths=server_paths,
+        )
         print("ChargeMultiServerTask initialized with the provided prompts.")
-
-        self.system_prompt = system_prompt
-        self.user_prompt = user_prompt
 
 
 if __name__ == "__main__":
 
     args = parser.parse_args()
-    Client.enable_cmd_history_and_shell_integration(args.history)
+    if args.history:
+        charge.enable_cmd_history_and_shell_integration(args.history)
+
     server_urls = args.server_urls
-    assert server_urls is not None, "Server URLs must be provided"
-    for url in server_urls:
-        assert url.endswith("/sse"), f"Server URL {url} must end with /sse"
+    server_path_1 = "stdio_server_1.py"
+    server_path_2 = "stdio_server_2.py"
 
     mytask = ChargeMultiServerTask(
         system_prompt=args.system_prompt,
         user_prompt=args.user_prompt,
+        server_urls=server_urls,
+        server_paths=[server_path_1, server_path_2],
     )
 
-    (model, backend, API_KEY, kwargs) = AutoGenClient.configure(
-        args.model, args.backend
-    )
+    agent_pool = AutoGenPool(model=args.model, backend=args.backend)
 
-    server_path_1 = "stdio_server_1.py"
-    server_path_2 = "stdio_server_2.py"
-
-    runner = AutoGenClient(
-        task=mytask,
-        backend=backend,
-        model=model,
-        api_key=API_KEY,
-        model_kwargs=kwargs,
-        server_path=[server_path_1, server_path_2],
-        server_url=server_urls,
-    )
+    runner = agent_pool.create_agent(task=mytask)
 
     results = asyncio.run(runner.run())
 

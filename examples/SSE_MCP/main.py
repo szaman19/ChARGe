@@ -1,11 +1,9 @@
 import argparse
 import asyncio
 from charge.tasks.Task import Task
-import httpx
 from charge.clients.Client import Client
-from charge.clients.autogen import AutoGenClient
-import os
-from typing import Optional
+from charge.clients.autogen import AutoGenClient, AutoGenPool
+from typing import Optional, Union
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--lead-molecule", type=str, default="CC(=O)O[C@H](C)CCN")
@@ -43,12 +41,14 @@ DEFAULT_USER_PROMPT_TEMPLATE = (
     "Return only the SMILES strings in a Python list format."
 )
 
+
 class UniqueMoleculeTask(Task):
     def __init__(
         self,
         lead_molecule: str,
         system_prompt: Optional[str] = None,
         user_prompt_template: Optional[str] = None,
+        server_urls: Optional[Union[str, list]] = None,
     ):
         # Use provided prompts or fall back to defaults
         if system_prompt is None:
@@ -60,7 +60,11 @@ class UniqueMoleculeTask(Task):
         # Format user prompt with lead molecule
         user_prompt = user_prompt_template.format(lead_molecule=lead_molecule)
 
-        super().__init__(system_prompt=system_prompt, user_prompt=user_prompt)
+        super().__init__(
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
+            server_urls=server_urls,
+        )
         print("UniqueMoleculeTask initialized with the provided prompts.")
         self.lead_molecule = lead_molecule
         self.system_prompt = system_prompt
@@ -71,27 +75,17 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     lead_molecule = args.lead_molecule
-    server_url = args.server_urls[0]
-    assert server_url is not None, "Server URL must be provided"
-    assert server_url.endswith("/sse"), "Server URL must end with /sse"
-
+    server_urls = args.server_urls
     mytask = UniqueMoleculeTask(
         lead_molecule=lead_molecule,
         system_prompt=args.system_prompt,
         user_prompt_template=args.user_prompt,
+        server_urls=server_urls,
     )
 
-    (model, backend, API_KEY, kwargs) = AutoGenClient.configure(args.model, args.backend)
-
-    runner = AutoGenClient(
-        task=mytask,
-        backend=backend,
-        model=model,
-        api_key=API_KEY,
-        model_kwargs=kwargs,
-        server_url=server_url,
-    )
+    agent_pool = AutoGenPool(model=args.model, backend=args.backend)
+    runner = agent_pool.create_agent(task=mytask)
 
     results = asyncio.run(runner.run())
 
-    print(f"[{model} orchestrated] Task completed. Results: {results}")
+    print(f"[{args.model} orchestrated] Task completed. Results: {results}")
