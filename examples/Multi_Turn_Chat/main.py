@@ -1,9 +1,9 @@
 import argparse
 import asyncio
 from charge.tasks.Task import Task
-from typing import Optional
+from typing import Optional, Union
 from charge.clients.Client import Client
-from charge.clients.autogen import AutoGenClient
+from charge.clients.autogen import AutoGenPool
 
 parser = argparse.ArgumentParser()
 
@@ -27,47 +27,23 @@ DEFAULT_SYSTEM_PROMPT = (
     "Provide the final answer in a clear and concise manner."
 )
 
-class ChargeChatTask(Task):
-    def __init__(
-        self,
-        system_prompt: Optional[str] = None,
-    ):
-        # Use provided system prompt or fall back to default
-        if system_prompt is None:
-            system_prompt = DEFAULT_SYSTEM_PROMPT
-
-        super().__init__(system_prompt=system_prompt, user_prompt=None)
-        print("ChargeChatTask initialized with the provided prompts.")
-
-        self.system_prompt = system_prompt
-        self.user_prompt = None
-
 
 if __name__ == "__main__":
 
     args = parser.parse_args()
-    server_url = args.server_urls[0]
-    assert server_url is not None, "Server URL must be provided"
-    assert server_url.endswith("/sse"), "Server URL must end with /sse"
+    server_url = args.server_urls
 
-    mytask = ChargeChatTask(
-        system_prompt=args.system_prompt,
+    mytask = Task(
+        system_prompt=(
+            DEFAULT_SYSTEM_PROMPT if args.system_prompt is None else args.system_prompt
+        ),
+        server_urls=server_url,
     )
 
-    (model, backend, API_KEY, kwargs) = AutoGenClient.configure(
-        args.model, args.backend
-    )
+    agent_pool = AutoGenPool(model=args.model, backend=args.backend)
 
-    runner = AutoGenClient(
-        task=mytask,
-        backend=backend,
-        model=model,
-        api_key=API_KEY,
-        model_kwargs=kwargs,
-        # server_path=server_path,
-        server_url=server_url,
-    )
+    agent = agent_pool.create_agent(task=mytask)
 
-    results = asyncio.run(runner.chat())
+    agent_state = asyncio.run(agent.chat())
 
-    print(f"Task completed. Results: {results}")
+    print(f"Task completed. Results: {agent_state}")

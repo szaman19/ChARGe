@@ -18,10 +18,9 @@ try:
 
     # from autogen_ext.agents.openai import OpenAIAgent
     from autogen_ext.tools.mcp import StdioServerParams, McpWorkbench, SseServerParams
-    from autogen_agentchat.messages import TextMessage, ThoughtEvent
+    from autogen_agentchat.messages import TextMessage
     from autogen_agentchat.conditions import HandoffTermination, TextMentionTermination
     from autogen_agentchat.teams import RoundRobinGroupChat
-    from autogen_agentchat.ui import Console
     from autogen_agentchat.conditions import TextMentionTermination
 
 except ImportError:
@@ -39,6 +38,8 @@ from charge.clients.autogen_utils import (
     _list_wb_tools,
     generate_agent,
     list_client_tools,
+    CustomConsole,
+    cli_chat_callback,
 )
 from typing import Any, Tuple, Type, Optional, Dict, Union, List, Callable, overload
 from charge.tasks.Task import Task
@@ -271,6 +272,72 @@ class AutoGenAgent(Agent):
         finally:
             await self.close_workbenches()
         return result.messages[-1].content
+
+    async def chat(
+        self,
+        input_callback: Optional[Callable[[], str]] = None,
+        output_callback: Optional[Callable] = cli_chat_callback,
+        **kwargs,
+    ) -> Any:
+        """
+        Starts a chat session with the agent.
+
+        Args:
+            output_callback (Optional[Callable], optional): Optional callback function to handle model output.
+                                                            Defaults to the cli_chat_callback function. This allows capturing model outputs in a custom
+                                                            callback such as printing to console or logging to a file
+                                                            or websocket. Default is std.out.
+
+        Returns:
+            The state is returned as a nested dictionary: a dictionary with key agent_states,
+            which is a dictionary the agent names as keys and the state as values.
+        """
+        agent_state = {}
+        await self.setup_mcp_workbenches()
+        try:
+            agent = generate_agent(
+                self.model_client,
+                self.agent_name,
+                self.task.get_system_prompt(),
+                self.workbenches,
+                max_tool_calls=self.max_tool_calls,
+            )
+
+            _input = (
+                input_callback() if input_callback is not None else input("\nUser: ")
+            )
+            team = RoundRobinGroupChat(
+                [agent],
+                max_turns=1,
+            )
+
+            stop_signal = False
+
+            while not stop_signal:
+                stream = team.run_stream(task=_input, output_task_messages=False)
+                await CustomConsole(
+                    stream,
+                    message_callback=(
+                        cli_chat_callback
+                        if output_callback is None
+                        else output_callback
+                    ),
+                )
+                print("\n" + "-" * 45)
+                _input = (
+                    input_callback()
+                    if input_callback is not None
+                    else input("\nUser: ")
+                )
+                if _input.lower().strip() in ["exit", "quit"]:
+                    team_state = await team.save_state()
+                    agent_state = team_state
+                    stop_signal = True
+
+        finally:
+            await self.close_workbenches()
+            await self.model_client.close()
+        return agent_state
 
     def get_context_history(self) -> list:
         """
