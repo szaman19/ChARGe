@@ -2,6 +2,8 @@ from abc import abstractmethod
 from typing import Any, List, Union
 from charge.tasks.Task import Task
 from charge.clients.AgentPool import Agent, AgentPool
+from charge._utils import maybe_await
+import inspect
 
 
 class Experiment(object):
@@ -78,7 +80,8 @@ class Experiment(object):
         while self.tasks:
             current_task = self.tasks.pop(0)
             agent = self.create_agent_with_experiment_state(task=current_task)
-            result = await agent.run_task(current_task)
-            self.add_to_context(agent, current_task, result)
+            result = await agent.run()
+            await maybe_await(self.add_to_context, agent, current_task, result)
+
             self.finished_tasks.append((current_task, result))
             self.save_agent_state(agent)

@@ -247,6 +247,7 @@ class AutoGenAgent(Agent):
                 self.task.get_system_prompt(),
                 self.workbenches,
                 max_tool_calls=self.max_tool_calls,
+                memory=self.memory,
                 **self.setup_kwargs,
             )
             user_prompt = self.task.get_user_prompt()
@@ -408,7 +409,6 @@ class AutoGenPool(AgentPool):
         task: Task,
         max_retries: int = 3,
         agent_name: Optional[str] = None,
-        model_context: Optional[UnboundedChatCompletionContext] = None,
         **kwargs,
     ):
         """Creates an AutoGen agent for the given task.
@@ -416,7 +416,6 @@ class AutoGenPool(AgentPool):
             task (Task): The task to be performed by the agent.
             max_retries (int, optional): Maximum number of retries for failed tasks. Defaults to 3.
             agent_name (Optional[str], optional): Name of the agent. If None, a default name will be assigned. Defaults to None.
-            model_context (Optional[UnboundedChatCompletionContext], optional): Model context for the agent. Defaults to None.
             **kwargs: Additional keyword arguments.
         Returns:
             AutoGenAgent: The created AutoGen agent.
@@ -445,7 +444,6 @@ class AutoGenPool(AgentPool):
             model_client=self.model_client,
             agent_name=agent_name,
             max_retries=max_retries,
-            model_context=model_context,
             **kwargs,
         )
         self.agent_dict[agent_name] = agent

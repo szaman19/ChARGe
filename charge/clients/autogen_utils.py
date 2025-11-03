@@ -6,12 +6,21 @@
 ################################################################################
 try:
     from autogen_agentchat.agents import AssistantAgent
-    from autogen_core.model_context import UnboundedChatCompletionContext
+    from autogen_core.model_context import (
+        UnboundedChatCompletionContext,
+        ChatCompletionContext,
+    )
     from autogen_core.memory import ListMemory
     from autogen_core.models import (
         ChatCompletionClient,
         LLMMessage,
         AssistantMessage,
+        SystemMessage,
+    )
+    from autogen_core.memory._base_memory import (
+        MemoryContent,
+        MemoryQueryResult,
+        UpdateContextResult,
     )
     from autogen_agentchat.ui._console import aprint
     from autogen_agentchat.base import Response, TaskResult
@@ -46,7 +55,6 @@ class ReasoningModelContext(UnboundedChatCompletionContext):
         self,
         assistant_message: AssistantMessage,
     ) -> None:
-
         await super().add_message(assistant_message)
 
         if self.callback:
@@ -83,7 +91,10 @@ def thoughts_callback(assistant_message):
             else:
                 print(f"Function {result.name} returned: {result.content}")
     else:
-        print("Model: ", assistant_message.message.content)
+        if hasattr(assistant_message, "message"):
+            print("Model: ", assistant_message.message.content)
+        elif hasattr(assistant_message, "content"):
+            print("Model: ", assistant_message.content)
 
 
 def generate_agent(
@@ -182,3 +193,60 @@ async def cli_chat_callback(message):
             )
             await aprint(message.to_text(), end="", flush=True)
         return None
+
+
+class ChARGeListMemory(ListMemory):
+    """A ListMemory that can store arbitrary objects as memory content."""
+
+    def __init__(
+        self,
+        name: Optional[str] = None,
+        memory_contents: Optional[List["MemoryContent"]] = None,
+    ):
+        super().__init__(name=name, memory_contents=memory_contents)
+        self.source_agent = []
+
+    async def update_context(
+        self,
+        model_context: ChatCompletionContext,
+    ) -> UpdateContextResult:
+        """Update the model context by appending memory content.
+
+        This method mutates the provided model_context by adding all memories as a
+        SystemMessage.
+
+        Args:
+            model_context: The context to update. Will be mutated if memories exist.
+
+        Returns:
+            UpdateContextResult containing the memories that were added to the context
+        """
+
+        if not self._contents:
+            return UpdateContextResult(memories=MemoryQueryResult(results=[]))
+
+        for i, (memory, source) in enumerate(zip(self._contents, self.source_agent)):
+            if i == 0:
+                content = "\nRelevant memory content (in chronological order):\n"
+            else:
+                content = "\n"
+            content += f"[From Agent: {source}] {memory.content}"
+            await model_context.add_message(
+                AssistantMessage(content=content, source=source)
+            )
+
+        return UpdateContextResult(memories=MemoryQueryResult(results=self._contents))
+
+    async def add(
+        self,
+        memory_content: MemoryContent,
+        source_agent: Optional[str] = None,
+    ) -> None:
+        """Add a new memory content to the list.
+
+        Args:
+            memory_content: The memory content to add.
+            source_agent: The source agent of the memory content.
+        """
+        self._contents.append(memory_content)
+        self.source_agent.append(source_agent if source_agent is not None else "Agent")

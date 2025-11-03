@@ -1,5 +1,6 @@
 import atexit
 import readline
+import inspect
 
 
 def enable_cmd_history_and_shell_integration(history: str):
@@ -24,3 +25,10 @@ def enable_cmd_history_and_shell_integration(history: str):
         pass
 
     atexit.register(readline.write_history_file, history)
+
+
+async def maybe_await(func, *args, **kwargs):
+    result = func(*args, **kwargs)
+    if inspect.isawaitable(result):
+        return await result
+    return result

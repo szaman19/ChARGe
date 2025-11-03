@@ -1,12 +1,12 @@
-from Experiment import Experiment
+from charge.experiments import Experiment
 from charge.clients.AgentPool import Agent, AgentPool
 from charge.tasks.Task import Task
-from typing import Any, List, Union
-import asyncio
+from typing import List, Union
 
 try:
-    from autogen_core.memory import ListMemory, MemoryContent, MemoryMimeType
+    from autogen_core.memory import MemoryContent, MemoryMimeType
     from charge.clients.autogen import AutoGenPool
+    from charge.clients.autogen_utils import ChARGeListMemory
 except ImportError:
 
     raise ImportError(
@@ -21,13 +21,13 @@ class AutogenExperiment(Experiment):
         super().__init__(task=task, agent_pool=agent_pool, *args, **kwargs)
         # Initialize Autogen specific parameters here
         # For example:
-        self.model_context = ListMemory()
+        self.model_context = ChARGeListMemory()
 
     def save_agent_state(self, agent):
         # Implement saving the state of the Autogen agent
         pass
 
-    def add_to_context(self, agent: Agent, task: Task, result):
+    async def add_to_context(self, agent: Agent, task: Task, result):
         # Implement adding the result to the context of the Autogen task
 
         # This is tricky and should be customized based on the use case
@@ -41,7 +41,7 @@ class AutogenExperiment(Experiment):
             content=f"Instruction: {instruction}\nResponse: {result}",
             mime_type=MemoryMimeType.TEXT,
         )
-        asyncio.run(self.model_context.add(content))
+        await self.model_context.add(content)
 
     def save_state(self):
         # Implement saving the state of the Autogen experiment
@@ -56,13 +56,13 @@ class AutogenExperiment(Experiment):
         }
         return state
 
-    def load_state(self, state):
+    async def load_state(self, state):
         # Implement loading the state of the Autogen experiment
 
         memory_content = state.get("memory", [])
-        self.model_context = ListMemory()
+        self.model_context = ChARGeListMemory()
         for content in memory_content:
-            asyncio.run(self.model_context.add(content))
+            await self.model_context.add(content)
 
         self.finished_tasks = state.get("finished_tasks", [])
         self.tasks = state.get("remaining_tasks", [])

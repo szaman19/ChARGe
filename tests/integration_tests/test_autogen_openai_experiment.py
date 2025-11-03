@@ -13,7 +13,7 @@ class TestOpenAISimpleTask:
         from charge.experiments.AutogentExperiment import AutogenExperiment
         from pydantic import BaseModel
 
-        self.agent_pool = AutoGenPool(model="gpt-5", backend="openai")
+        self.agent_pool = AutoGenPool(model="gpt-5-nano", backend="openai")
 
         first_task = Task(
             system_prompt="You are a helpful assistant, that is capable of"
@@ -27,9 +27,9 @@ class TestOpenAISimpleTask:
             explanation: str
 
         second_task = Task(
-            system_prompt="You are a helpful assistant, that is capable of"
+            system_prompt="You are a helpful assistant, that is capable of "
             + "take an answer and explanation and convert it a structured JSON format.",
-            user_prompt="Take the previous answer and explanation"
+            user_prompt="Take the previous answer and explanation "
             + "and convert it into a JSON",
             structured_output_schema=MathExplanationSchema,
         )
@@ -54,18 +54,18 @@ class TestOpenAISimpleTask:
         finished_tasks = self.experiment.get_finished_tasks()
         assert len(finished_tasks) == 2
 
-        first_task_result = finished_tasks[0]
-        second_task_result = finished_tasks[1]
+        first_task, first_task_result = finished_tasks[0]
+        second_task, second_task_result = finished_tasks[1]
 
         print("First Task Result:", first_task_result)
         print("Second Task Result:", second_task_result)
 
-        assert "15" in first_task_result
+        assert re.search(r"15", first_task_result)
         assert re.search(r'"answer":\s*15', second_task_result)
 
         self.state = self.experiment.save_state()
 
-        self.experiment.load_state(self.state)
+        await self.experiment.load_state(self.state)
 
         self.experiment.add_task(self.third_task)
         assert self.experiment.remaining_tasks() == 1
@@ -74,6 +74,6 @@ class TestOpenAISimpleTask:
         finished_tasks = self.experiment.get_finished_tasks()
         assert len(finished_tasks) == 3
 
-        third_task_result = finished_tasks[2]
+        third_task, third_task_result = finished_tasks[2]
         print("Third Task Result:", third_task_result)
         assert "15" in third_task_result
