@@ -10,7 +10,7 @@ def autogen_agentpool_module():
 
 @pytest.fixture
 def autogen_experiment_module():
-    from charge.experiments import AutogenExperiment
+    from charge.experiments.AutogentExperiment import AutogenExperiment
 
     return AutogenExperiment
 

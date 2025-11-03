@@ -10,7 +10,7 @@ class TestOpenAISimpleTask:
     def setup_fixture(self):
         from charge.tasks.Task import Task
         from charge.clients.autogen import AutoGenPool
-        from charge.experiments import AutogenExperiment
+        from charge.experiments.AutogentExperiment import AutogenExperiment
         from pydantic import BaseModel
 
         self.agent_pool = AutoGenPool(model="gpt-5", backend="openai")
