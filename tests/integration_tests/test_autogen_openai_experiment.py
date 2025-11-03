@@ -50,12 +50,12 @@ class TestOpenAISimpleTask:
     async def test_linear_experiment_run(self):
         import re
 
-        self.experiment.run()
+        await self.experiment.run()
         finished_tasks = self.experiment.get_finished_tasks()
         assert len(finished_tasks) == 2
 
-        first_task_result = finished_tasks[0][1]
-        second_task_result = finished_tasks[1][1]
+        first_task_result = finished_tasks[0]
+        second_task_result = finished_tasks[1]
 
         print("First Task Result:", first_task_result)
         print("Second Task Result:", second_task_result)
@@ -70,10 +70,10 @@ class TestOpenAISimpleTask:
         self.experiment.add_task(self.third_task)
         assert self.experiment.remaining_tasks() == 1
 
-        self.experiment.run()
+        await self.experiment.run()
         finished_tasks = self.experiment.get_finished_tasks()
         assert len(finished_tasks) == 3
 
-        third_task_result = finished_tasks[2][1]
+        third_task_result = finished_tasks[2]
         print("Third Task Result:", third_task_result)
         assert "15" in third_task_result

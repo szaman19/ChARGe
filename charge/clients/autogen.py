@@ -173,6 +173,7 @@ class AutoGenAgent(Agent):
         self.model_client = model_client
         self.timeout = timeout
         self.memory = memory
+        self.setup_kwargs = kwargs
 
     def create_servers(self, paths: List[str], urls: List[str]) -> List[Any]:
         """
@@ -246,6 +247,7 @@ class AutoGenAgent(Agent):
                 self.task.get_system_prompt(),
                 self.workbenches,
                 max_tool_calls=self.max_tool_calls,
+                **self.setup_kwargs,
             )
             user_prompt = self.task.get_user_prompt()
             if self.task.has_structured_output_schema():
