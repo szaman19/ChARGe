@@ -18,7 +18,7 @@ class TestOpenAISimpleTask:
         first_task = Task(
             system_prompt="You are a helpful assistant, that is capable of"
             + "doing arithmetic and returning an explanation of how you arrived at the"
-            + "answer.",
+            + "answer. Provide concise and fast responses.",
             user_prompt="What is 10 plus 5?",
         )
 
@@ -39,8 +39,10 @@ class TestOpenAISimpleTask:
         )
 
         third_task = Task(
-            system_prompt="You are a helpful assistant that can parse JSON from text.",
-            user_prompt="Extract the 'answer' field from the previous JSON.",
+            system_prompt="You are a helpful assistant that can parse JSON from text"
+            + " that can extract fields and do arithmetic.",
+            user_prompt="Extract the 'answer' field from the previous JSON and "
+            + "multiply it by 3.",
         )
 
         # Don't add the third task to the experiment yet
@@ -76,4 +78,4 @@ class TestOpenAISimpleTask:
 
         third_task, third_task_result = finished_tasks[2]
         print("Third Task Result:", third_task_result)
-        assert "15" in third_task_result
+        assert "45" in third_task_result
