@@ -50,7 +50,7 @@ class AutoGenExperiment(Experiment):
         seralized_memory = self.model_context.serialize_memory_content()
         return seralized_memory
 
-    async def load_state(self, state_json):
+    async def load_state(self, state_json: str):
         # Implement loading the state of the Autogen experiment
 
         self.model_context = ChARGeListMemory()

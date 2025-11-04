@@ -30,7 +30,8 @@ class TestOpenAISimpleTask:
 
         second_task = Task(
             system_prompt="You are a helpful assistant, that is capable of "
-            + "take an answer and explanation and convert it a structured JSON format.",
+            + "take an answer and explanation and convert it a structured JSON format."
+            + " Provide concise and fast responses.",
             user_prompt="Take the previous answer and explanation "
             + "and convert it into a JSON",
             structured_output_schema=MathExplanationSchema,
@@ -50,8 +51,16 @@ class TestOpenAISimpleTask:
         # Don't add the third task to the experiment yet
         self.third_task = third_task
 
+        alternate_third_task = Task(
+            system_prompt="You are a helpful assistant that can parse JSON from text"
+            + " that can extract fields and do arithmetic.",
+            user_prompt="Extract the 'answer' field from the previous JSON and "
+            + "multiply it by 4.",
+        )
+        self.alternate_third_task = alternate_third_task
+
     @pytest.mark.asyncio
-    async def test_linear_experiment_run(self):
+    async def test_linear_experiment_run(self, mocker):
         import re
 
         await self.experiment.run_async()
@@ -74,6 +83,8 @@ class TestOpenAISimpleTask:
 
         self.state = await self.experiment.save_state()
 
+        print("Serialized State:", self.state)
+
         await self.experiment.load_state(self.state)
 
         self.experiment.add_task(self.third_task)
@@ -86,3 +97,28 @@ class TestOpenAISimpleTask:
         third_task, third_task_result = finished_tasks[2]
         print("Third Task Result:", third_task_result)
         assert "45" in third_task_result
+
+        # Redo loading state and ensure we go back to 2 finished tasks
+        save_file_content = self.state
+
+        mocker.patch("builtins.open", mocker.mock_open(read_data=save_file_content))
+
+        with open("mock_save_file.json", "r") as f:
+            content = f.read()
+
+        assert content == save_file_content
+
+        await self.experiment.load_state(content)
+
+        assert self.experiment.remaining_tasks() == 0
+
+        print("Experiment State Loaded Successfully")
+
+        self.experiment.add_task(self.alternate_third_task)
+        assert self.experiment.remaining_tasks() == 1
+        await self.experiment.run_async()
+        finished_tasks = self.experiment.get_finished_tasks()
+
+        third_task, third_task_result = finished_tasks[-1]
+        print("Third Task Result After Reloading State:", third_task_result)
+        assert "60" in third_task_result
