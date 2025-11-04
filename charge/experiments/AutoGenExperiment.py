@@ -12,7 +12,6 @@ except ImportError:
     raise ImportError(
         "The autogen package is required for AutoGenExperiment. Please install it via 'pip install autogen'."
     )
-import json
 
 
 class AutoGenExperiment(Experiment):
@@ -44,7 +43,7 @@ class AutoGenExperiment(Experiment):
         )
         await self.model_context.add(content)
 
-    def save_state(self) -> str:
+    async def save_state(self) -> str:
         # Implement saving the state of the Autogen experiment
 
         # Get the current memory content

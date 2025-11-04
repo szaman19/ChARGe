@@ -2,8 +2,8 @@ from abc import abstractmethod
 from typing import Any, List, Union
 from charge.tasks.Task import Task
 from charge.clients.AgentPool import Agent, AgentPool
-from charge._utils import maybe_await
-import inspect
+from charge._utils import maybe_await_async
+import asyncio
 
 
 class Experiment(object):
@@ -26,6 +26,11 @@ class Experiment(object):
 
     @abstractmethod
     def save_agent_state(self, agent):
+        # Save the state of the agent
+        raise NotImplementedError("Subclasses must implement save_agent_state method")
+
+    @abstractmethod
+    def save_agent_state_async(self, agent):
         # Save the state of the agent
         raise NotImplementedError("Subclasses must implement save_agent_state method")
 
@@ -75,13 +80,14 @@ class Experiment(object):
         """
         return self.finished_tasks
 
-    def run(self) -> None:
-
+    async def run_async(self) -> None:
         while self.tasks:
             current_task = self.tasks.pop(0)
             agent = self.create_agent_with_experiment_state(task=current_task)
-            result = maybe_await(agent.run)
-            maybe_await(self.add_to_context, agent, current_task, result)
-
+            result = await maybe_await_async(agent.run)
+            await maybe_await_async(self.add_to_context, agent, current_task, result)
             self.finished_tasks.append((current_task, result))
             self.save_agent_state(agent)
+
+    def run(self) -> None:
+        asyncio.run(self.run_async())

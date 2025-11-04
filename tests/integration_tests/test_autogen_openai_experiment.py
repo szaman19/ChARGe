@@ -26,6 +26,8 @@ class TestOpenAISimpleTask:
             answer: int
             explanation: str
 
+        self.schema = MathExplanationSchema
+
         second_task = Task(
             system_prompt="You are a helpful assistant, that is capable of "
             + "take an answer and explanation and convert it a structured JSON format.",
@@ -52,7 +54,7 @@ class TestOpenAISimpleTask:
     async def test_linear_experiment_run(self):
         import re
 
-        await self.experiment.run()
+        await self.experiment.run_async()
         finished_tasks = self.experiment.get_finished_tasks()
         assert len(finished_tasks) == 2
 
@@ -63,16 +65,21 @@ class TestOpenAISimpleTask:
         print("Second Task Result:", second_task_result)
 
         assert re.search(r"15", first_task_result)
-        assert re.search(r'"answer":\s*15', second_task_result)
+        assert second_task.check_output_formatting(second_task_result)
 
-        self.state = self.experiment.save_state()
+        parse_output = self.schema.model_validate_json(second_task_result)
+        assert parse_output.answer == 15
+
+        # assert re.search(r'"answer":\s*15', second_task_result)
+
+        self.state = await self.experiment.save_state()
 
         await self.experiment.load_state(self.state)
 
         self.experiment.add_task(self.third_task)
         assert self.experiment.remaining_tasks() == 1
 
-        await self.experiment.run()
+        await self.experiment.run_async()
         finished_tasks = self.experiment.get_finished_tasks()
         assert len(finished_tasks) == 3
 
