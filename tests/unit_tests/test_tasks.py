@@ -15,7 +15,7 @@ import requests_mock
     ],
 )
 def test_normalize_string(input_data, expected_output):
-    from charge.tasks.Task import normalize_string
+    from charge.utils.system_utils import normalize_string
 
     assert normalize_string(input_data) == expected_output
 
