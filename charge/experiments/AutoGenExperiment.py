@@ -10,12 +10,12 @@ try:
 except ImportError:
 
     raise ImportError(
-        "The autogen package is required for AutogenExperiment. Please install it via 'pip install autogen'."
+        "The autogen package is required for AutoGenExperiment. Please install it via 'pip install autogen'."
     )
 import json
 
 
-class AutogenExperiment(Experiment):
+class AutoGenExperiment(Experiment):
     def __init__(
         self, task: Union[Task, List[Task]], agent_pool: AutoGenPool, *args, **kwargs
     ):

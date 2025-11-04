@@ -10,7 +10,7 @@ class TestOpenAISimpleTask:
     def setup_fixture(self):
         from charge.tasks.Task import Task
         from charge.clients.autogen import AutoGenPool
-        from charge.experiments.AutogentExperiment import AutogenExperiment
+        from charge.experiments.AutoGenExperiment import AutoGenExperiment
         from pydantic import BaseModel
 
         self.agent_pool = AutoGenPool(model="gpt-5-nano", backend="openai")
@@ -34,7 +34,7 @@ class TestOpenAISimpleTask:
             structured_output_schema=MathExplanationSchema,
         )
 
-        self.experiment = AutogenExperiment(
+        self.experiment = AutoGenExperiment(
             task=[first_task, second_task], agent_pool=self.agent_pool
         )
 

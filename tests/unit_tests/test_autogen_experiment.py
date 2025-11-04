@@ -10,9 +10,9 @@ def autogen_agentpool_module():
 
 @pytest.fixture
 def autogen_experiment_module():
-    from charge.experiments.AutogentExperiment import AutogenExperiment
+    from charge.experiments.AutoGenExperiment import AutoGenExperiment
 
-    return AutogenExperiment
+    return AutoGenExperiment
 
 
 @pytest.fixture
@@ -26,10 +26,10 @@ def setup_autogen_experiment(autogen_experiment_module, autogen_agentpool_module
             super().__init__(name="MockTask")
 
     task = MockTask()
-    agent_pool = autogen_agentpool_module.AutogenAgentPool()
+    agent_pool = autogen_agentpool_module.AutoGenPool()
 
-    # Initialize AutogenExperiment
-    experiment = autogen_experiment_module.AutogenExperiment(
+    # Initialize AutoGenExperiment
+    experiment = autogen_experiment_module.AutoGenExperiment(
         task=task, agent_pool=agent_pool
     )
 
