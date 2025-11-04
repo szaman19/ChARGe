@@ -1,6 +1,7 @@
 import atexit
 import readline
 import inspect
+import asyncio
 
 
 def enable_cmd_history_and_shell_integration(history: str):
@@ -27,8 +28,15 @@ def enable_cmd_history_and_shell_integration(history: str):
     atexit.register(readline.write_history_file, history)
 
 
-async def maybe_await(func, *args, **kwargs):
+def maybe_await(func, *args, **kwargs):
     result = func(*args, **kwargs)
     if inspect.isawaitable(result):
-        return await result
+        try:
+            loop = asyncio.get_running_loop()
+            # If we're already in a running loop, return the awaitable
+            # The caller will need to await it
+            return result
+        except RuntimeError:
+            # No running loop, so we can create one
+            return asyncio.run(result)
     return result

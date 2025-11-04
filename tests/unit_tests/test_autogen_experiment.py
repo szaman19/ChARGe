@@ -49,9 +49,10 @@ def test_autogen_experiment_run(setup_autogen_experiment):
     assert experiment.remaining_tasks() == 0
 
 
-def test_save_and_load_state_methods(setup_autogen_experiment):
+@pytest.mark.asyncio
+async def test_save_and_load_state_methods(setup_autogen_experiment):
     experiment = setup_autogen_experiment
     state = experiment.save_state()
     assert state is not None
-    experiment.load_state(state)
+    await experiment.load_state(state)
     assert experiment is not None

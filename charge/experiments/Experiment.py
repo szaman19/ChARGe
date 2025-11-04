@@ -75,13 +75,13 @@ class Experiment(object):
         """
         return self.finished_tasks
 
-    async def run(self) -> None:
+    def run(self) -> None:
 
         while self.tasks:
             current_task = self.tasks.pop(0)
             agent = self.create_agent_with_experiment_state(task=current_task)
-            result = await agent.run()
-            await maybe_await(self.add_to_context, agent, current_task, result)
+            result = maybe_await(agent.run)
+            maybe_await(self.add_to_context, agent, current_task, result)
 
             self.finished_tasks.append((current_task, result))
             self.save_agent_state(agent)
