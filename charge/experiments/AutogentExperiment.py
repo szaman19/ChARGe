@@ -12,6 +12,7 @@ except ImportError:
     raise ImportError(
         "The autogen package is required for AutogenExperiment. Please install it via 'pip install autogen'."
     )
+import json
 
 
 class AutogenExperiment(Experiment):
@@ -43,30 +44,18 @@ class AutogenExperiment(Experiment):
         )
         await self.model_context.add(content)
 
-    def save_state(self):
+    def save_state(self) -> str:
         # Implement saving the state of the Autogen experiment
 
         # Get the current memory content
-        all_memory_content = self.model_context.content
-        state = {
-            "memory": all_memory_content,
-            "finished_tasks": self.finished_tasks,
-            "remaining_tasks": self.tasks,
-            "agent_pool": self.agent_pool,  # May need to customize based on agent pool implementation
-        }
-        return state
+        seralized_memory = self.model_context.serialize_memory_content()
+        return seralized_memory
 
-    async def load_state(self, state):
+    async def load_state(self, state_json):
         # Implement loading the state of the Autogen experiment
 
-        memory_content = state.get("memory", [])
         self.model_context = ChARGeListMemory()
-        for content in memory_content:
-            await self.model_context.add(content)
-
-        self.finished_tasks = state.get("finished_tasks", [])
-        self.tasks = state.get("remaining_tasks", [])
-        self.agent_pool = state.get("agent_pool", self.agent_pool)
+        self.model_context.load_memory_content(state_json)
 
     def create_agent_with_experiment_state(self, task):
         return self.agent_pool.create_agent(task=task, memory=[self.model_context])

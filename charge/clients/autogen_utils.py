@@ -34,6 +34,8 @@ except ImportError:
 from charge.clients.Client import Client
 from typing import Type, Optional, Dict, Union, List, Callable
 from loguru import logger
+import dataclasses
+import json
 
 
 class ReasoningModelContext(UnboundedChatCompletionContext):
@@ -250,3 +252,38 @@ class ChARGeListMemory(ListMemory):
         """
         self._contents.append(memory_content)
         self.source_agent.append(source_agent if source_agent is not None else "Agent")
+
+    def serialize_memory_content(self) -> str:
+        """Serialize the memory contents to a JSON string.
+
+        Returns:
+            str: JSON string representation of the memory contents.
+        """
+
+        memory_dicts = []
+        for memory, source in zip(self._contents, self.source_agent):
+            serialized_memory_content = memory.model_dump()
+            source_agent = {"source_agent": source}
+            memory_dict = {**serialized_memory_content, **source_agent}
+            memory_dicts.append(memory_dict)
+
+        _str = json.dumps(memory_dicts, indent=2)
+
+        return _str
+
+    def load_memory_content(self, json_str: str) -> None:
+        """Load memory contents from a JSON string.
+
+        Args:
+            json_str: JSON string representation of the memory contents.
+        """
+
+        memory_dicts = json.loads(json_str)
+
+        self._contents = []
+        self.source_agent = []
+        for memory_dict in memory_dicts:
+            source_agent = memory_dict.pop("source_agent", "Agent")
+            memory_content = MemoryContent.model_validate(memory_dict)
+            self._contents.append(memory_content)
+            self.source_agent.append(source_agent)
