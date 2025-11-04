@@ -16,9 +16,28 @@ def autogen_experiment_module():
 
 
 @pytest.fixture
-def setup_autogen_experiment(autogen_experiment_module, autogen_agentpool_module):
+def autoget_mock_agent_pool(autogen_agentpool_module):
     from charge.tasks.Task import Task
-    from charge.clients.AgentPool import AgentPool
+
+    class MockAutoGenPool(autogen_agentpool_module.AutoGenPool):
+        def create_agent(self, task: Task, *args, **kwargs):
+            class MockAgent:
+                def __init__(self, task):
+                    self.task = task
+
+                def run(self):
+                    return f"Mock response for task: {self.task.name}"
+
+            return MockAgent(task)
+
+    return MockAutoGenPool(model="gpt-5")
+
+
+@pytest.fixture
+def setup_autogen_experiment(
+    autogen_experiment_module, autoget_mock_agent_pool
+):
+    from charge.tasks.Task import Task
 
     # Create a mock task
     class MockTask(Task):
@@ -26,7 +45,7 @@ def setup_autogen_experiment(autogen_experiment_module, autogen_agentpool_module
             super().__init__(name="MockTask")
 
     task = MockTask()
-    agent_pool = autogen_agentpool_module.AutoGenPool(model="gpt-5")
+    agent_pool = autoget_mock_agent_pool
 
     # Initialize AutoGenExperiment
     experiment = autogen_experiment_module.AutoGenExperiment(
