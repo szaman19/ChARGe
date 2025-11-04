@@ -26,7 +26,7 @@ def autoget_mock_agent_pool(autogen_agentpool_module):
                     self.task = task
 
                 def run(self):
-                    return f"Mock response for task: {self.task.name}"
+                    return f"Mock response for task: {self.task}"
 
             return MockAgent(task)
 
@@ -34,9 +34,7 @@ def autoget_mock_agent_pool(autogen_agentpool_module):
 
 
 @pytest.fixture
-def setup_autogen_experiment(
-    autogen_experiment_module, autoget_mock_agent_pool
-):
+def setup_autogen_experiment(autogen_experiment_module, autoget_mock_agent_pool):
     from charge.tasks.Task import Task
 
     # Create a mock task
