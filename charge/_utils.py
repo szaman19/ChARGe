@@ -28,13 +28,26 @@ def enable_cmd_history_and_shell_integration(history: str):
     atexit.register(readline.write_history_file, history)
 
 
-async def maybe_await_async(func, *args, **kwargs):
+async def maybe_await_async(var, *args, **kwargs):
+    """Utility function to handle both synchronous and asynchronous callables or values.
+    Args:
+        var: A value, callable, or awaitable.
+        *args: Positional arguments to pass if var is callable.
+        **kwargs: Keyword arguments to pass if var is callable.
+    Returns:
+        The result of the callable or awaitable, or the value itself.
+    """
 
-    if inspect.isawaitable(func):
-        result = func
+    if inspect.isawaitable(var):
+        # If var is an awaitable, like a coroutine
+        result = var
+    elif callable(var):
+        # If var is a callable function or coroutine function
+        result = var(*args, **kwargs)
     else:
-        result = func(*args, **kwargs)
+        # If var is a regular value
+        result = var
 
     if inspect.isawaitable(result):
-        return await result
+        result = await result
     return result
