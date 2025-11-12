@@ -236,6 +236,12 @@ class AutoGenAgent(Agent):
     async def run(self, **kwargs) -> str:
         """
         Runs the agent.
+
+
+        Returns:
+            str: The output content from the agent. If structured output is enabled,
+                 the output will be checked with the task's formatting method and
+                 the json string will be returned.
         """
         content = ""
 
@@ -259,7 +265,9 @@ class AutoGenAgent(Agent):
                 keys = list(schema["properties"].keys())
 
                 user_prompt += (
-                    "\n\n Please provide the answer as a JSON object with the following keys: "
+                    "The output must be formatted correctly according to the schema {schema}"
+                    + "Do not return the schema, only return the values as a JSON object."
+                    + "\n\n Please provide the answer as a JSON object with the following keys: "
                     + f"{keys}\n\n"
                 )
 
@@ -273,9 +281,7 @@ class AutoGenAgent(Agent):
 
                     if self.task.has_structured_output_schema():
                         # Use a new agent to convert the output to the structured format
-
                         try:
-
                             structured_output_agent = generate_agent(
                                 self.model_client,
                                 self.agent_name + "_STRUCTURED_OUTPUT_AGENT",
@@ -288,7 +294,6 @@ class AutoGenAgent(Agent):
                             structured_prompt = (
                                 "Convert the following output to the required structured format:\n\n"
                                 + proposed_content
-                                + f"\n\n The required json keys are :\n{keys}"
                             )
                             structured_result = await structured_output_agent.run(
                                 task=structured_prompt
