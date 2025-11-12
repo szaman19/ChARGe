@@ -311,7 +311,7 @@ class AutoGenAgent(Agent):
                                 ):
                                     proposed_content = structured_result.messages[
                                         -1
-                                    ].content.json()
+                                    ].content.model_dump_json()
                                 else:
                                     raise ValueError(
                                         "Structured output agent did not return a TextMessage."
