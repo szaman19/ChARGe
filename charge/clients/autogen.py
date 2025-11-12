@@ -324,6 +324,13 @@ class AutoGenAgent(Agent):
                         content = proposed_content
 
                         break
+                    else:
+                        warnings.warn(
+                            f"Output formatting check failed. Retrying...\nProposed content: {proposed_content}\n"
+                            + f"Remaining retries: {self.max_retries - i - 1}"
+                        )
+
+                        # TODO: Add feedback to the agent here - S.Z
                 else:
                     warnings.warn(
                         f"Last message is not a TextMessage. Retrying... {result.messages[-1]}\n"
