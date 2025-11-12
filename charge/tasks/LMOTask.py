@@ -77,10 +77,11 @@ class LMOTask(Task):
         system_prompt: Optional[str] = None,
         verification_prompt: Optional[str] = None,
         refinement_prompt: Optional[str] = None,
+        **kwargs,
     ):
 
         if user_prompt is None:
-            user_prompt = USER_PROMPT.format(lead_molecule) + SCHEMA_PROMPT
+            user_prompt = USER_PROMPT.format(lead_molecule)
         if system_prompt is None:
             system_prompt = SYSTEM_PROMPT
 
@@ -89,6 +90,7 @@ class LMOTask(Task):
             user_prompt=user_prompt,
             verification_prompt=verification_prompt,
             refinement_prompt=refinement_prompt,
+            **kwargs,
         )
 
         print("LMOTask initialized with the provided prompts.")
