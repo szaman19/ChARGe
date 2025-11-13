@@ -265,9 +265,9 @@ class AutoGenAgent(Agent):
                 keys = list(schema["properties"].keys())
 
                 user_prompt += (
-                    "The output must be formatted correctly according to the schema {schema}"
+                    f"The output must be formatted correctly according to the schema {schema}"
                     + "Do not return the schema, only return the values as a JSON object."
-                    + "\n\n Please provide the answer as a JSON object with the following keys: "
+                    + "\n\nPlease provide the answer as a JSON object with the following keys: "
                     + f"{keys}\n\n"
                 )
 
