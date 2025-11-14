@@ -5,8 +5,8 @@
 ## SPDX-License-Identifier: Apache-2.0
 ################################################################################
 try:
-    from autogen_agentchat.agents import AssistantAgent, UserProxyAgent
-    from autogen_core.model_context import UnboundedChatCompletionContext
+    from autogen_agentchat.agents import UserProxyAgent
+
     from autogen_core.models import (
         ModelFamily,
         ChatCompletionClient,
@@ -18,7 +18,7 @@ try:
 
     # from autogen_ext.agents.openai import OpenAIAgent
     from autogen_ext.tools.mcp import StdioServerParams, McpWorkbench, SseServerParams
-    from autogen_agentchat.messages import TextMessage
+    from autogen_agentchat.messages import TextMessage, StructuredMessage
     from autogen_agentchat.conditions import HandoffTermination, TextMentionTermination
     from autogen_agentchat.teams import RoundRobinGroupChat
     from autogen_agentchat.conditions import TextMentionTermination
@@ -236,6 +236,12 @@ class AutoGenAgent(Agent):
     async def run(self, **kwargs) -> str:
         """
         Runs the agent.
+
+
+        Returns:
+            str: The output content from the agent. If structured output is enabled,
+                 the output will be checked with the task's formatting method and
+                 the json string will be returned.
         """
         content = ""
 
@@ -253,9 +259,16 @@ class AutoGenAgent(Agent):
             )
             user_prompt = self.task.get_user_prompt()
             if self.task.has_structured_output_schema():
+                structured_out = self.task.get_structured_output_schema()
+                assert structured_out is not None
+                schema = structured_out.model_json_schema()
+                keys = list(schema["properties"].keys())
+
                 user_prompt += (
-                    "\n\n Please provide the answer in the following JSON format: "
-                    + f"{self.task.get_structured_output_schema().model_json_schema()}\n\n"
+                    f"The output must be formatted correctly according to the schema {schema}"
+                    + "Do not return the schema, only return the values as a JSON object."
+                    + "\n\nPlease provide the answer as a JSON object with the following keys: "
+                    + f"{keys}\n\n"
                 )
 
             for i in range(self.max_retries):
@@ -265,10 +278,59 @@ class AutoGenAgent(Agent):
 
                 if isinstance(result.messages[-1], TextMessage):
                     proposed_content = result.messages[-1].content
+
+                    if self.task.has_structured_output_schema():
+                        # Use a new agent to convert the output to the structured format
+                        try:
+                            structured_output_agent = generate_agent(
+                                self.model_client,
+                                self.agent_name + "_STRUCTURED_OUTPUT_AGENT",
+                                "You are an agent that converts model output to a structured format.",
+                                [],
+                                max_tool_calls=1,
+                                memory=self.memory,
+                                output_content_type=self.task.get_structured_output_schema(),
+                            )
+                            structured_prompt = (
+                                "Convert the following output to the required structured format:\n\n"
+                                + proposed_content
+                            )
+                            structured_result = await structured_output_agent.run(
+                                task=structured_prompt
+                            )
+
+                            if structured_result:
+                                if isinstance(
+                                    structured_result.messages[-1], TextMessage
+                                ):
+                                    proposed_content = structured_result.messages[
+                                        -1
+                                    ].content
+                                elif isinstance(
+                                    structured_result.messages[-1], StructuredMessage
+                                ):
+                                    proposed_content = structured_result.messages[
+                                        -1
+                                    ].content.model_dump_json()
+                                else:
+                                    raise ValueError(
+                                        "Structured output agent did not return a TextMessage."
+                                    )
+                        except Exception as e:
+                            warnings.warn(
+                                f"Error occurred while converting to structured format: {e}"
+                            )
                     if self.task.check_output_formatting(proposed_content):
                         content = proposed_content
 
                         break
+                    else:
+                        warnings.warn(
+                            f"Output formatting check failed. Retrying...\nProposed content: {proposed_content}\n"
+                            + f"Remaining retries: {self.max_retries - i - 1}"
+                        )
+
+                        # TODO: Add feedback to the agent here - S.Z
                 else:
                     warnings.warn(
                         f"Last message is not a TextMessage. Retrying... {result.messages[-1]}\n"

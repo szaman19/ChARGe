@@ -32,9 +32,9 @@ except ImportError:
         "Please install the autogen-agentchat package to use this module."
     )
 from charge.clients.Client import Client
-from typing import Type, Optional, Dict, Union, List, Callable
+from typing import Type, Optional, Union, List, Callable
 from loguru import logger
-import dataclasses
+from pydantic import BaseModel
 import json
 
 
@@ -106,6 +106,7 @@ def generate_agent(
     workbenches: List[McpWorkbench],
     max_tool_calls: int,
     callback: Optional[Callable] = None,
+    output_content_type: Optional[Type[BaseModel]] = None,
     **kwargs,
 ):
     if isinstance(model_client, AsyncOpenAI):
@@ -130,7 +131,7 @@ def generate_agent(
                 thoughts_callback if callback is None else callback
             ),
             **kwargs,
-            # output_content_type=structured_output_schema,
+            output_content_type=output_content_type,
         )
     else:
         raise ValueError("ERROR: Unknown model client type.")
