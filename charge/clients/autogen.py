@@ -35,6 +35,7 @@ import warnings
 from charge.clients.AgentPool import AgentPool, Agent
 from charge.clients.Client import Client
 from charge.clients.autogen_utils import (
+    ChARGeListMemory,
     _list_wb_tools,
     generate_agent,
     list_client_tools,
@@ -162,6 +163,9 @@ class AutoGenAgent(Agent):
         max_retries: int = 3,
         max_tool_calls: int = 30,
         timeout: int = 60,
+        model: Optional[str] = None,
+        backend: Optional[str] = None,
+        model_kwargs: Optional[dict] = None,
         **kwargs,
     ) -> None:
         super().__init__(task=task, **kwargs)
@@ -172,8 +176,25 @@ class AutoGenAgent(Agent):
         self.agent_name = agent_name
         self.model_client = model_client
         self.timeout = timeout
-        self.memory = memory
+        self.memory = self.setup_memory(memory)
         self.setup_kwargs = kwargs
+
+        self.context_history = []
+        self.model = model
+        self.backend = backend
+        self.model_kwargs = model_kwargs if model_kwargs is not None else {}
+
+    def setup_memory(self, memory: Optional[Any] = None) -> ChARGeListMemory:
+        """
+        Sets up the memory for the agent if not already provided.
+        Args:
+            memory (Optional[Any], optional): Pre-initialized memory. Defaults to None.
+        Returns:
+            ChARGeListMemory: The memory instance.
+        """
+        if memory is not None:
+            return memory
+        return ChARGeListMemory()
 
     def create_servers(self, paths: List[str], urls: List[str]) -> List[Any]:
         """
@@ -233,6 +254,169 @@ class AutoGenAgent(Agent):
             return
         await asyncio.gather(*[workbench.stop() for workbench in self.workbenches])
 
+    def _create_agent(self, **kwargs) -> Any:
+        """
+        Creates an AutoGen agent with the given parameters.
+
+        Returns:
+            Any: The created AutoGen agent.
+        """
+        return generate_agent(
+            self.model_client,
+            self.agent_name,
+            self.task.get_system_prompt(),
+            self.workbenches,
+            max_tool_calls=self.max_tool_calls,
+            memory=self.memory,
+            **self.setup_kwargs,
+        )
+
+    def _prepare_task_prompt(self, **kwargs) -> str:
+        """
+        Prepares the task prompt for the agent.
+
+        Returns:
+            str: The prepared task prompt.
+        """
+        user_prompt = self.task.get_user_prompt()
+        if self.task.has_structured_output_schema():
+            structured_out = self.task.get_structured_output_schema()
+            assert structured_out is not None
+            schema = structured_out.model_json_schema()
+            keys = list(schema["properties"].keys())
+
+            user_prompt += (
+                f"The output must be formatted correctly according to the schema {schema}"
+                + "Do not return the schema, only return the values as a JSON object."
+                + "\n\nPlease provide the answer as a JSON object with the following keys: "
+                + f"{keys}\n\n"
+            )
+        return user_prompt
+
+    async def _convert_to_structured_format(self, content: str) -> str:
+        """
+        Converts content to structured format using a dedicated agent.
+
+        Args:
+            content: The content to convert.
+
+        Returns:
+            The structured content as a JSON string.
+
+        Raises:
+            OutputValidationError: If conversion fails.
+        """
+        try:
+            agent = self._create_structured_output_agent()
+            prompt = (
+                "Convert the following output to the required structured format:\n\n"
+                f"{content}"
+            )
+            result = await agent.run(task=prompt)
+
+            if not result or not result.messages:
+                raise ValueError("Structured output agent returned empty result")
+
+            last_message = result.messages[-1]
+
+            if isinstance(last_message, StructuredMessage):
+                return last_message.content.model_dump_json()
+            elif isinstance(last_message, TextMessage):
+                return last_message.content
+            else:
+                raise ValueError(f"Unexpected message type: {type(last_message)}")
+
+        except Exception as e:
+            logger.error(f"Failed to convert to structured format: {e}")
+            raise ValueError(f"Structured output conversion failed: {e}") from e
+
+    def _create_structured_output_agent(self) -> Any:
+        """Creates an agent for structured output conversion."""
+        if self._structured_output_agent is None:
+            self._structured_output_agent = generate_agent(
+                self.model_client,
+                f"{self.agent_name}_structured_output",
+                "You are an agent that converts model output to a structured format.",
+                [],  # No tools needed
+                max_tool_calls=1,
+                memory=self.memory,
+                output_content_type=self.task.get_structured_output_schema(),
+            )
+        return self._structured_output_agent
+
+    async def _execute_with_retries(self, agent: Any, user_prompt: str) -> str:
+        """
+        Executes the agent with retry logic and output validation.
+
+        Args:
+            agent: The agent instance to run.
+            user_prompt: The prompt to send to the agent.
+
+        Returns:
+            Valid output content as a string.
+
+        Raises:
+            OutputValidationError: If all retries fail to produce valid output.
+        """
+        last_error = None
+
+        for attempt in range(1, self.max_retries + 1):
+            try:
+                logger.info(f"Attempt {attempt}/{self.max_retries}")
+                result = await agent.run(task=user_prompt)
+                self.context_history.append(result)
+
+                if not result.messages:
+                    logger.warning(f"Attempt {attempt}: No messages in result")
+                    continue
+
+                last_message = result.messages[-1]
+
+                if not isinstance(last_message, TextMessage):
+                    logger.warning(
+                        f"Attempt {attempt}: Last message is {type(last_message)}, "
+                        f"expected TextMessage"
+                    )
+                    continue
+
+                proposed_content = last_message.content
+
+                # Convert to structured format if needed
+                if self.task.has_structured_output_schema():
+                    try:
+                        proposed_content = await self._convert_to_structured_format(
+                            proposed_content
+                        )
+                    except Exception as e:
+                        logger.warning(
+                            f"Attempt {attempt}: Structured conversion failed: {e}"
+                        )
+                        last_error = e
+                        continue
+
+                # Validate output
+                if self.task.check_output_formatting(proposed_content):
+                    logger.info(f"Valid output obtained on attempt {attempt}")
+                    return proposed_content
+                else:
+                    error_msg = (
+                        f"Attempt {attempt}: Output validation failed. "
+                        f"Content preview: {proposed_content[:200]}..."
+                    )
+                    logger.warning(error_msg)
+                    last_error = ValueError("Output validation failed")
+
+            except Exception as e:
+                error_msg = f"Attempt {attempt}: Unexpected error: {e}"
+                logger.error(error_msg)
+                last_error = e
+
+        # All retries exhausted
+        raise ValueError(
+            f"Failed to obtain valid output after {self.max_retries} attempts. "
+            f"Last error: {last_error}"
+        )
+
     async def run(self, **kwargs) -> str:
         """
         Runs the agent.
@@ -248,98 +432,13 @@ class AutoGenAgent(Agent):
         # set up workbenches from task server paths
         await self.setup_mcp_workbenches()
         try:
-            agent = generate_agent(
-                self.model_client,
-                self.agent_name,
-                self.task.get_system_prompt(),
-                self.workbenches,
-                max_tool_calls=self.max_tool_calls,
-                memory=self.memory,
-                **self.setup_kwargs,
-            )
-            user_prompt = self.task.get_user_prompt()
-            if self.task.has_structured_output_schema():
-                structured_out = self.task.get_structured_output_schema()
-                assert structured_out is not None
-                schema = structured_out.model_json_schema()
-                keys = list(schema["properties"].keys())
-
-                user_prompt += (
-                    f"The output must be formatted correctly according to the schema {schema}"
-                    + "Do not return the schema, only return the values as a JSON object."
-                    + "\n\nPlease provide the answer as a JSON object with the following keys: "
-                    + f"{keys}\n\n"
-                )
-
-            for i in range(self.max_retries):
-                result = await agent.run(task=user_prompt)
-
-                self.context_history.append(result)
-
-                if isinstance(result.messages[-1], TextMessage):
-                    proposed_content = result.messages[-1].content
-
-                    if self.task.has_structured_output_schema():
-                        # Use a new agent to convert the output to the structured format
-                        try:
-                            structured_output_agent = generate_agent(
-                                self.model_client,
-                                self.agent_name + "_STRUCTURED_OUTPUT_AGENT",
-                                "You are an agent that converts model output to a structured format.",
-                                [],
-                                max_tool_calls=1,
-                                memory=self.memory,
-                                output_content_type=self.task.get_structured_output_schema(),
-                            )
-                            structured_prompt = (
-                                "Convert the following output to the required structured format:\n\n"
-                                + proposed_content
-                            )
-                            structured_result = await structured_output_agent.run(
-                                task=structured_prompt
-                            )
-
-                            if structured_result:
-                                if isinstance(
-                                    structured_result.messages[-1], TextMessage
-                                ):
-                                    proposed_content = structured_result.messages[
-                                        -1
-                                    ].content
-                                elif isinstance(
-                                    structured_result.messages[-1], StructuredMessage
-                                ):
-                                    proposed_content = structured_result.messages[
-                                        -1
-                                    ].content.model_dump_json()
-                                else:
-                                    raise ValueError(
-                                        "Structured output agent did not return a TextMessage."
-                                    )
-                        except Exception as e:
-                            warnings.warn(
-                                f"Error occurred while converting to structured format: {e}"
-                            )
-                    if self.task.check_output_formatting(proposed_content):
-                        content = proposed_content
-
-                        break
-                    else:
-                        warnings.warn(
-                            f"Output formatting check failed. Retrying...\nProposed content: {proposed_content}\n"
-                            + f"Remaining retries: {self.max_retries - i - 1}"
-                        )
-
-                        # TODO: Add feedback to the agent here - S.Z
-                else:
-                    warnings.warn(
-                        f"Last message is not a TextMessage. Retrying... {result.messages[-1]}\n"
-                        + f"Remaining retries: {self.max_retries - i - 1}"
-                    )
-
+            agent = self._create_agent()
+            user_prompt = self._prepare_task_prompt()
+            result = await self._execute_with_retries(agent, user_prompt)
         finally:
             await self.close_workbenches()
-        return content
+
+        return result
 
     async def chat(
         self,
@@ -363,14 +462,7 @@ class AutoGenAgent(Agent):
         agent_state = {}
         await self.setup_mcp_workbenches()
         try:
-            agent = generate_agent(
-                self.model_client,
-                self.agent_name,
-                self.task.get_system_prompt(),
-                self.workbenches,
-                max_tool_calls=self.max_tool_calls,
-            )
-
+            agent = self._create_agent()
             _input = (
                 input_callback() if input_callback is not None else input("\nUser: ")
             )
@@ -412,6 +504,37 @@ class AutoGenAgent(Agent):
         Returns the context history of the agent.
         """
         return self.context_history
+
+    def load_context_history(self, history: list) -> None:
+        """
+        Loads the context history into the agent.
+        """
+        self.context_history = history
+
+    def load_memory(self, jston_str: str) -> None:
+        """
+        Loads memory content into the agent's memory.
+        """
+        if self.memory is not None:
+            self.memory.load_memory_content(jston_str)
+
+    def save_memory(self) -> str:
+        """
+        Saves the agent's memory content to a JSON string.
+        """
+        if self.memory is not None:
+            return self.memory.serialize_memory_content()
+        return ""
+
+    def get_model_info(self) -> Dict[str, Any]:
+        """
+        Returns the model information of the agent.
+        """
+        return {
+            "model": self.model,
+            "backend": self.backend,
+            "model_kwargs": self.model_kwargs,
+        }
 
 
 class AutoGenPool(AgentPool):
@@ -466,6 +589,9 @@ class AutoGenPool(AgentPool):
             self.model_client = create_autogen_model_client(
                 backend=backend, model=model, api_key=api_key, model_kwargs=model_kwargs
             )
+        self.model = model
+        self.backend = backend
+        self.model_kwargs = model_kwargs if model_kwargs is not None else {}
         if self.model_client is None:
             raise ValueError("Failed to create model client.")
 
@@ -509,6 +635,9 @@ class AutoGenPool(AgentPool):
             model_client=self.model_client,
             agent_name=agent_name,
             max_retries=max_retries,
+            model=self.model,
+            backend=self.backend,
+            model_kwargs=self.model_kwargs,
             **kwargs,
         )
         self.agent_dict[agent_name] = agent
