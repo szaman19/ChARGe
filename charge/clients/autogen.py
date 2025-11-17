@@ -159,11 +159,11 @@ class AutoGenAgent(Agent):
         task: Task,
         model_client: Union[AsyncOpenAI, ChatCompletionClient],
         agent_name: str,
+        model: str,
         memory: Optional[Any] = None,
         max_retries: int = 3,
         max_tool_calls: int = 30,
         timeout: int = 60,
-        model: Optional[str] = None,
         backend: Optional[str] = None,
         model_kwargs: Optional[dict] = None,
         **kwargs,
@@ -263,10 +263,11 @@ class AutoGenAgent(Agent):
         """
         return generate_agent(
             self.model_client,
-            self.agent_name,
+            self.model,
             self.task.get_system_prompt(),
             self.workbenches,
             max_tool_calls=self.max_tool_calls,
+            name=self.agent_name,
             memory=self.memory,
             **self.setup_kwargs,
         )
@@ -618,7 +619,7 @@ class AutoGenPool(AgentPool):
 
         AutoGenPool.AGENT_COUNT += 1
         agent_name = (
-            f"CHARGE_AUTOGEN_AGENT_{AutoGenPool.AGENT_COUNT}"
+            f"[{self.backend}:{self.model}]_{AutoGenPool.AGENT_COUNT}"
             if agent_name is None
             else agent_name
         )
@@ -635,7 +636,7 @@ class AutoGenPool(AgentPool):
             model_client=self.model_client,
             agent_name=agent_name,
             max_retries=max_retries,
-            model=self.model,
+            model=self.model,  # type: ignore
             backend=self.backend,
             model_kwargs=self.model_kwargs,
             **kwargs,
