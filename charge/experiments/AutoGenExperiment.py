@@ -45,7 +45,9 @@ class AutoGenExperiment(Experiment):
             content=f"Instruction: {instruction}\nResponse: {result}",
             mime_type=MemoryMimeType.TEXT,
         )
-        await self.model_context.add(content)
+
+        name = getattr(agent, "agent_name", "Agent")
+        await self.model_context.add(content, source_agent=name)
 
     async def save_state(self) -> str:
         # Implement saving the state of the Autogen experiment
