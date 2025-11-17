@@ -73,10 +73,10 @@ class ReasoningModelContext(UnboundedChatCompletionContext):
 
 def thoughts_callback(assistant_message: LLMMessage):
     # print("In callback:", assistant_message)
+    source = getattr(assistant_message, "source", "Assistant")
     if assistant_message.type == "UserMessage":
-        print(f"User: {assistant_message.content}")
+        print(f"{source} User: {assistant_message.content}")
     elif assistant_message.type == "AssistantMessage":
-        source = getattr(assistant_message, "source", "Assistant")
 
         if assistant_message.thought is not None:
             print(f"{source} Model thought: {assistant_message.thought}")
