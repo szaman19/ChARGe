@@ -30,6 +30,7 @@ except ImportError:
 
 import asyncio
 from functools import partial
+import re
 import os
 import warnings
 from charge.clients.AgentPool import AgentPool, Agent
@@ -183,18 +184,19 @@ class AutoGenAgent(Agent):
         self.model = model
         self.backend = backend
         self.model_kwargs = model_kwargs if model_kwargs is not None else {}
+        self._structured_output_agent: Optional[Any] = None
 
-    def setup_memory(self, memory: Optional[Any] = None) -> ChARGeListMemory:
+    def setup_memory(self, memory: Optional[Any] = None) -> List[ChARGeListMemory]:
         """
         Sets up the memory for the agent if not already provided.
         Args:
             memory (Optional[Any], optional): Pre-initialized memory. Defaults to None.
         Returns:
-            ChARGeListMemory: The memory instance.
+            List[ChARGeListMemory]: The memory instance.
         """
         if memory is not None:
             return memory
-        return ChARGeListMemory()
+        return [ChARGeListMemory()]
 
     def create_servers(self, paths: List[str], urls: List[str]) -> List[Any]:
         """
@@ -517,13 +519,22 @@ class AutoGenAgent(Agent):
         Loads memory content into the agent's memory.
         """
         if self.memory is not None:
-            self.memory.load_memory_content(jston_str)
+            if isinstance(self.memory, list):
+                for mem in self.memory:
+                    mem.load_memory_content(jston_str)
+            else:
+                self.memory.load_memory_content(jston_str)
 
     def save_memory(self) -> str:
         """
         Saves the agent's memory content to a JSON string.
         """
         if self.memory is not None:
+            if isinstance(self.memory, list):
+                combined_content = ""
+                for mem in self.memory:
+                    combined_content += mem.serialize_memory_content()
+                return combined_content
             return self.memory.serialize_memory_content()
         return ""
 
@@ -618,11 +629,13 @@ class AutoGenPool(AgentPool):
         ), "Model client must be initialized to create an agent."
 
         AutoGenPool.AGENT_COUNT += 1
-        agent_name = (
-            f"[{self.backend}:{self.model}]_{AutoGenPool.AGENT_COUNT}"
-            if agent_name is None
-            else agent_name
-        )
+
+        model_name = self.model if self.model is not None else "default_model"
+        backend_name = self.backend if self.backend is not None else "default_backend"
+
+        default_name = f"_{backend_name}:{model_name}]_{AutoGenPool.AGENT_COUNT}"
+        default_name = re.sub(r"[^a-zA-Z0-9_]", "_", default_name)
+        agent_name = default_name if agent_name is None else agent_name
 
         if agent_name in self.agent_list:
             warnings.warn(
