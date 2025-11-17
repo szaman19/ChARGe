@@ -6,10 +6,8 @@
 ################################################################################
 
 from loguru import logger
-
 try:
     from rdkit import Chem
-
     HAS_RDKIT = True
 except (ImportError, ModuleNotFoundError) as e:
     HAS_RDKIT = False
@@ -17,7 +15,8 @@ except (ImportError, ModuleNotFoundError) as e:
         "Please install the rdkit support packages to use this module."
         "Install it with: pip install charge[rdkit]",
     )
-
+except ImportError:
+    raise ImportError("Please install the rdkit package to use this module.")
 import json
 import os
 from charge.tasks.Task import Task
@@ -25,12 +24,10 @@ from charge.servers.server_utils import add_server_arguments
 from mcp.server.fastmcp import FastMCP
 from charge.clients.autogen import AutoGenClient
 from charge.clients.Client import Client
-from charge.servers.ServerToolkit import ServerToolkit
 import asyncio
 from charge.servers import SMILES_utils
 import charge.utils.helper_funcs as hf
 import argparse
-from typing import Literal, Optional
 
 parser = argparse.ArgumentParser()
 add_server_arguments(parser)
@@ -50,7 +47,7 @@ JSON_FILE_PATH = f"{os.getcwd()}/known_molecules.json"
 
 
 class DiagnoseSMILESTask(Task):
-    def __init__(self, smiles):
+    def __init__(self):
         system_prompt = (
             "You are a world-class chemist. Your task is to diagnose and evaluate "
             "the quality of the provided SMILES strings. You will be given invalid"
@@ -59,7 +56,7 @@ class DiagnoseSMILESTask(Task):
         )
 
         user_prompt = (
-            f"Diagnose the following SMILES string {smiles}. Give it a short and concise "
+            "Diagnose the followig SMILES string {0}. Give it a short and concise "
             "explanation of what is wrong with it, and if possible, provide a corrected "
             "version of the SMILES string. If the SMILES string is valid, simply state "
             "'The SMILES string is valid.'"
@@ -68,39 +65,7 @@ class DiagnoseSMILESTask(Task):
 
     def update_user_prompt(self, smiles: str) -> None:
         assert self.user_prompt is not None
-        self.user_prompt = self.user_prompt.format(smiles=smiles)
-
-
-class MolecularGenerationServer(ServerToolkit):
-    def __init__(
-        self,
-        model: str,
-        backend: str,
-        port: int,
-        host: str,
-        mcp: Optional[FastMCP] = None,
-    ):
-        self.model = model
-        self.backend = backend
-
-        if mcp is None:
-            mcp = FastMCP(
-                "SMILES Diagnosis and retrieval MCP Server",
-                port=port,
-                website_url=f"{host}",
-            )
-
-        self.mcp.tool()(SMILES_utils.canonicalize_smiles)
-        self.mcp.tool()(SMILES_utils.verify_smiles)
-        self.mcp.tool()(SMILES_utils.get_synthesizability)
-        super().__init__(mcp)
-
-    @ServerToolkit.mcp_tool
-    def diagnose_smiles(self, smiles: str) -> str:
-        return "True"
-
-    def run(self, transport: Literal["sse", "stdio"] = "sse"):
-        self.mcp.run(transport=transport)
+        self.user_prompt.format(smiles)
 
 
 @mcp.tool()
@@ -114,21 +79,19 @@ def diagnose_smiles(smiles: str) -> str:
         str: The diagnosis of the SMILES string.
     """
     if not HAS_RDKIT:
-        raise ImportError(
-            "Please install the rdkit support packages to use this module."
-        )
+        raise ImportError("Please install the rdkit support packages to use this module.")
     logger.info(f"Diagnosing SMILES string: {smiles}")
-    task = DiagnoseSMILESTask(smiles)
+    task = DiagnoseSMILESTask()
+    task.update_user_prompt(smiles)
+    diagnose_agent = AutoGenClient(
+        task=task,
+        model=MODEL,
+        backend=BACKEND,
+        api_key=API_KEY,
+        model_kwargs=KWARGS,
+    )
 
     try:
-        diagnose_agent = AutoGenClient(
-            task=task,
-            model=MODEL,
-            backend=BACKEND,
-            api_key=API_KEY,
-            model_kwargs=KWARGS,
-        )
-
         response = asyncio.run(diagnose_agent.run())
         assert response is not None
         assert len(response.messages) > 0  # type: ignore
@@ -158,9 +121,7 @@ def is_already_known(smiles: str) -> bool:
         ValueError: If the SMILES string is invalid.
     """
     if not HAS_RDKIT:
-        raise ImportError(
-            "Please install the rdkit support packages to use this module."
-        )
+        raise ImportError("Please install the rdkit support packages to use this module.")
     if not Chem.MolFromSmiles(smiles):
         raise ValueError("Invalid SMILES string.")
 
@@ -195,9 +156,7 @@ def get_density(smiles: str) -> float:
         float: The density of the molecule.
     """
     if not HAS_RDKIT:
-        raise ImportError(
-            "Please install the rdkit support packages to use this module."
-        )
+        raise ImportError("Please install the rdkit support packages to use this module.")
     density = hf.get_density(smiles)
     logger.info(f"Density for SMILES {smiles}: {density}")
     return density
@@ -211,9 +170,7 @@ mcp.tool()(SMILES_utils.get_synthesizability)
 
 if __name__ == "__main__":
     if not HAS_RDKIT:
-        raise ImportError(
-            "Please install the rdkit support packages to use this module."
-        )
+        raise ImportError("Please install the rdkit support packages to use this module.")
     parser = argparse.ArgumentParser(description="Molecule Tools Server")
     Client.add_std_parser_arguments(parser)
     parser.add_argument(
