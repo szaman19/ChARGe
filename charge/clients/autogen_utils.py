@@ -41,9 +41,10 @@ import json
 class ReasoningModelContext(UnboundedChatCompletionContext):
     """A model context for reasoning models."""
 
-    def __init__(self, callback: Optional[Callable] = None):
+    def __init__(self, name, callback: Optional[Callable] = None):
         super().__init__()
-        self.callback = callback
+        self.name = name
+        self.custom_callback = callback
 
     async def get_messages(self) -> List[LLMMessage]:
         messages = await super().get_messages()
@@ -59,44 +60,47 @@ class ReasoningModelContext(UnboundedChatCompletionContext):
     ) -> None:
         await super().add_message(assistant_message)
 
-        if self.callback:
-            self.callback(assistant_message)
+        if self.custom_callback:
+            self.custom_callback(assistant_message)
+
         else:
-            if (
-                hasattr(assistant_message, "thought")
-                and assistant_message.thought is not None
-            ):
-                print(f"Model thought: {assistant_message.thought}")
+            self.default_callback(assistant_message)
+
+    def default_callback(self, assistant_message: LLMMessage):
+        # print("In callback:", assistant_message)
+
+        source = self.name
+        if assistant_message.type == "UserMessage":
+            print(f"[{source}] User: {assistant_message.content}")
+        elif assistant_message.type == "AssistantMessage":
+
+            if assistant_message.thought is not None:
+                print(f"{source} Model thought: {assistant_message.thought}")
+            if isinstance(assistant_message.content, list):
+                for item in assistant_message.content:
+                    if hasattr(item, "name") and hasattr(item, "arguments"):
+                        print(
+                            f"[{source}] Function call: {item.name} with args {item.arguments}"
+                        )
+                    else:
+                        print(f"[{source}] Model: {item}")
             else:
-                print("Model: ", assistant_message.content)
+                print(f"[{source}] Model: {assistant_message.content}")
+        elif assistant_message.type == "FunctionExecutionResultMessage":
 
-
-def thoughts_callback(assistant_message):
-    # print("In callback:", assistant_message)
-    if assistant_message.type == "UserMessage":
-        print(f"User: {assistant_message.content}")
-    elif assistant_message.type == "AssistantMessage":
-
-        if assistant_message.thought is not None:
-            print(f"Model thought: {assistant_message.thought}")
-        if isinstance(assistant_message.content, list):
-            for item in assistant_message.content:
-                if hasattr(item, "name") and hasattr(item, "arguments"):
-                    print(f"Function call: {item.name} with args {item.arguments}")
+            for result in assistant_message.content:
+                if result.is_error:
+                    print(
+                        f"Function {result.name} errored with output: {result.content}"
+                    )
                 else:
-                    print(f"Model: {item}")
-    elif assistant_message.type == "FunctionExecutionResultMessage":
+                    print(f"Function {result.name} returned: {result.content}")
+        else:
 
-        for result in assistant_message.content:
-            if result.is_error:
-                print(f"Function {result.name} errored with output: {result.content}")
-            else:
-                print(f"Function {result.name} returned: {result.content}")
-    else:
-        if hasattr(assistant_message, "message"):
-            print("Model: ", assistant_message.message.content)
-        elif hasattr(assistant_message, "content"):
-            print("Model: ", assistant_message.content)
+            if hasattr(assistant_message, "message"):
+                print("[{source}] Model: ", assistant_message.message.content)
+            elif hasattr(assistant_message, "content"):
+                print("[{source}] Model: ", assistant_message.content)
 
 
 def generate_agent(
@@ -105,6 +109,7 @@ def generate_agent(
     system_prompt: str,
     workbenches: List[McpWorkbench],
     max_tool_calls: int,
+    name: str = "Assistant",
     callback: Optional[Callable] = None,
     output_content_type: Optional[Type[BaseModel]] = None,
     **kwargs,
@@ -121,15 +126,13 @@ def generate_agent(
     elif isinstance(model_client, ChatCompletionClient):
         # TODO: Convert this to use custom agent in the future
         agent = AssistantAgent(
-            name="Assistant",
+            name=name,
             model_client=model_client,
             system_message=system_prompt,
             workbench=workbenches if len(workbenches) > 0 else None,
             max_tool_iterations=max_tool_calls,
             reflect_on_tool_use=True,
-            model_context=ReasoningModelContext(
-                thoughts_callback if callback is None else callback
-            ),
+            model_context=ReasoningModelContext(name, callback),
             **kwargs,
             output_content_type=output_content_type,
         )
@@ -251,6 +254,7 @@ class ChARGeListMemory(ListMemory):
             memory_content: The memory content to add.
             source_agent: The source agent of the memory content.
         """
+
         self._contents.append(memory_content)
         self.source_agent.append(source_agent if source_agent is not None else "Agent")
 
