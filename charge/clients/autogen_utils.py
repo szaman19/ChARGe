@@ -98,9 +98,9 @@ class ReasoningModelContext(UnboundedChatCompletionContext):
         else:
 
             if hasattr(assistant_message, "message"):
-                print("Model: ", assistant_message.message.content)
+                print("[{source}] Model: ", assistant_message.message.content)
             elif hasattr(assistant_message, "content"):
-                print("Model: ", assistant_message.content)
+                print("[{source}] Model: ", assistant_message.content)
 
 
 def generate_agent(
