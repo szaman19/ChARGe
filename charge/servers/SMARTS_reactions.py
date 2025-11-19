@@ -7,10 +7,12 @@
 
 from mcp.server.fastmcp import FastMCP
 from loguru import logger
+from charge.servers.ServerToolkit import ServerToolkit
 
 try:
-    from rdkit import Chem
-    from rdkit.Chem import AllChem, rdChemReactions
+    from charge.servers.SMARTS_reactions_utils import verify_reaction_SMARTS
+    from charge.servers.SMILES_utils import verify_smiles
+    from charge.servers.SMARTS_reactions_utils import verify_reaction
     HAS_SMARTS = True
 except (ImportError, ModuleNotFoundError) as e:
     HAS_SMARTS = False
@@ -19,26 +21,42 @@ except (ImportError, ModuleNotFoundError) as e:
         "Install it with: pip install charge[rdkit]",
     )
 
-from charge.servers.server_utils import add_server_arguments
-import argparse
 
-parser = argparse.ArgumentParser()
-add_server_arguments(parser)
-args = parser.parse_args()
+class SMARTSServer(ServerToolkit):
+    """
+    A ChARGe server that provides tools for Chemistry and reaction verification.
+    """
+    def __init__(self, mcp: FastMCP):
+        """
+        Initialize the SMARTSServer.
 
-SMARTS_mcp = FastMCP(
-    "[RDKit-SMARTS] Chemistry and reaction verification MCP Server",
-    port=args.port,
-    website_url=f"{args.host}",
-)
+        Args:
+            mcp (FastMCP): The MCP instance to register the function with.
+        """
+        super().__init__(mcp)
 
-logger.info("[RDKit-SMARTS] Starting Chemistry and reaction verification MCP Server")
+        if HAS_SMARTS:
+            self.register_function_as_tool(self.mcp, verify_reaction_SMARTS)
+            self.register_function_as_tool(self.mcp, verify_smiles)
+            self.register_function_as_tool(self.mcp, verify_reaction)
 
-import charge.servers.SMARTS_reactions_utils as smarts
-import charge.servers.SMILES_utils as smiles
 
-SMARTS_mcp.tool()(smarts.verify_reaction_SMARTS)
+if __name__ == "__main__":
+    from charge.servers.server_utils import add_server_arguments
+    import argparse
 
-SMARTS_mcp.tool()(smiles.verify_smiles)
+    logger.info("[RDKit-SMARTS] Starting Chemistry and reaction verification MCP Server")
 
-SMARTS_mcp.tool()(smarts.verify_reaction)
+    parser = argparse.ArgumentParser()
+    add_server_arguments(parser)
+    args = parser.parse_args()
+
+    SMARTS_mcp = FastMCP(
+        "[RDKit-SMARTS] Chemistry and reaction verification MCP Server",
+        port=args.port,
+        website_url=f"{args.host}",
+    )
+
+    sm = SMARTSServer(SMARTS_mcp)
+    mcp = sm.return_mcp()
+    mcp.run()
