@@ -1,3 +1,10 @@
+################################################################################
+## Copyright 2025 Lawrence Livermore National Security, LLC. and Binghamton University.
+## See the top-level LICENSE file for details.
+##
+## SPDX-License-Identifier: Apache-2.0
+################################################################################
+
 from abc import abstractmethod
 from typing import Any, List, Union, Optional
 from charge.tasks.Task import Task

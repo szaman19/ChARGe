@@ -1,3 +1,10 @@
+################################################################################
+## Copyright 2025 Lawrence Livermore National Security, LLC. and Binghamton University.
+## See the top-level LICENSE file for details.
+##
+## SPDX-License-Identifier: Apache-2.0
+################################################################################
+
 from charge.tasks.Task import Task
 from charge.servers.log_progress import LOG_PROGRESS_SYSTEM_PROMPT
 from typing import List, Optional
