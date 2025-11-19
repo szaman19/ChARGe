@@ -1,8 +1,15 @@
 import inspect
+from typing import Type
 
-
-def inspect_class(cls):
-
+def inspect_class(cls: Type) -> dict:
+    """Inspect a class and return its type, name, and file path.
+    
+    Args:
+        cls: The class to inspect.
+    
+    Returns:
+        dict: A dictionary containing the type, name, and file path of the class.
+    """
     type_ = type(cls)
     module = inspect.getmodule(cls.__class__)
     file = module.__file__ if module else "Unknown"

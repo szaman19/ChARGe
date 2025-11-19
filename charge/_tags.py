@@ -33,6 +33,11 @@ def hypothesis(func: Callable) -> Callable:
     
     Returns:
         Callable: The function marked as a hypothesis.
+
+    
+    Side Effects:
+        Marks the function as a hypothesis. 
+        `func` is modified in place to include the `__hypothesis_tag` attribute.
     """
     func.__hypothesis_tag = True
     return func

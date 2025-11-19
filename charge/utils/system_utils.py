@@ -7,6 +7,16 @@ import warnings
 import requests
 
 def normalize_string(s: str) -> str:
+    """
+    Normalize a string by converting it to lowercase and removing any whitespace or
+    hyphens.
+    
+    Args:
+        s (str): The string to normalize.
+    
+    Returns:
+        str: The normalized string.
+    """
     s = s.lower()
     s = re.sub(r"[\s\-]+", "_", s)
     s = re.sub(r"_+", "_", s)
@@ -15,12 +25,31 @@ def normalize_string(s: str) -> str:
 
 
 def _load_json(file_path: str) -> dict:
+    """
+    Load a JSON file and return its contents.
+    
+    Args:
+        file_path (str): The path to the JSON file.
+    
+    Returns:
+        dict: The contents of the JSON file.
+    """
     with open(file_path, "r") as f:
         data = json.load(f)
     return data
 
 
 def _prompt_from_json_file(file_path: str, key: str) -> str:
+    """
+    Load a JSON file and return the value associated with the specified key.
+    
+    Args:
+        file_path (str): The path to the JSON file.
+        key (str): The key to look for in the JSON file.
+    
+    Returns:
+        str: The value associated with the specified key.
+    """
     data = _load_json(file_path)
     for k in data.keys():
         k = normalize_string(k)
@@ -30,17 +59,44 @@ def _prompt_from_json_file(file_path: str, key: str) -> str:
 
 
 def _prompt_from_txt_file(file_path: str) -> str:
-
+    """
+    Load a text file and return its contents.
+    
+    Args:
+        file_path (str): The path to the text file.
+    
+    Returns:
+        str: The contents of the text file.
+    """
     with open(file_path, "r") as f:
         prompt = f.read()
     return prompt
 
 
 def _check_file_exists(file_path: str) -> bool:
+    """
+    Check if a file exists.
+    
+    Args:
+        file_path (str): The path to the file.
+    
+    Returns:
+        bool: True if the file exists, False otherwise.
+    """
     return osp.isfile(file_path)
 
 
 def read_from_file(self, file_path: str, key: str) -> str:
+    """
+    Read a file and return its contents.
+    
+    Args:
+        file_path (str): The path to the file.
+        key (str): The key to look for in the file.
+    
+    Returns:
+        str: The contents of the file.
+    """
     assert osp.isfile(file_path), f"File {file_path} does not exist"
     if file_path.endswith(".txt"):
         return _prompt_from_txt_file(file_path)
@@ -50,6 +106,15 @@ def read_from_file(self, file_path: str, key: str) -> str:
         raise ValueError("Only .txt and .json files are supported")
 
 def check_url_exists(url: str) -> bool:
+    """
+    Check if a URL exists.
+    
+    Args:
+        url (str): The URL to check.
+    
+    Returns:
+        bool: True if the URL exists, False otherwise.
+    """
     if not url.startswith("http://") and not url.startswith("https://"):
         return False
 
@@ -70,13 +135,15 @@ def check_url_exists(url: str) -> bool:
 def check_server_paths(server_paths: Optional[Union[str, list]]) -> list:
     """
     Gracefully handle errors in server paths provided by user.
+    
     Args:
         server_paths (Optional[Union[str, list]]): The server paths to check.
+    
     Returns:
         list: A list of valid server paths.
+
     Raises:
-        FileNotFoundError: If any of the server paths do not exist and
-        CHARGE_ERROR_ON_MISSING_SERVER is set to 1.
+        ValueError: If any of the server paths do not exist and `CHARGE_ERROR_ON_MISSING_SERVER` is set to 1.
     """
 
     if server_paths is None:

@@ -8,8 +8,10 @@ from charge.servers.molecular_property_utils import get_density
 def get_list_from_json_file(file_path: str) -> list:
     """
     Load a list of molecules from a JSON file.
+    
     Args:
         file_path (str): The path to the JSON file.
+    
     Returns:
         list: The list of molecules.
     """
@@ -28,9 +30,13 @@ def get_list_from_json_file(file_path: str) -> list:
 def save_list_to_json_file(data: list, file_path: str) -> None:
     """
     Save a list of molecules to a JSON file.
+    
     Args:
         data (list): The list of molecules.
         file_path (str): The path to the JSON file.
+    
+    Returns:
+        None
     """
     try:
         with open(file_path, "w") as f:
@@ -46,6 +52,9 @@ def post_process_smiles(smiles: str, parent_id: int, node_id: int) -> dict:
 
     Args:
         smiles (str): The input SMILES string.
+        parent_id (int): The parent ID of the molecule.
+        node_id (int): The node ID of the molecule.
+
     Returns:
         dict: The post-processed dictionary.
     """

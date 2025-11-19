@@ -30,10 +30,12 @@ def enable_cmd_history_and_shell_integration(history: str) -> None:
 
 async def maybe_await_async(var: Any, *args: Any, **kwargs: Any) -> Any:
     """Utility function to handle both synchronous and asynchronous callables or values.
+    
     Args:
         var: A value, callable, or awaitable.
         *args: Positional arguments to pass if var is callable.
         **kwargs: Keyword arguments to pass if var is callable.
+    
     Returns:
         The result of the callable or awaitable, or the value itself.
     """
