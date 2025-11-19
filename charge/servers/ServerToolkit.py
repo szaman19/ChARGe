@@ -16,8 +16,7 @@ class ServerToolkit:
     """
 
     def __init__(self, mcp: FastMCP):
-        self.mcp = mcp
-        self._pending_methods = []
+        self._mcp = mcp
 
     def _register_methods(self):
         """
@@ -50,7 +49,7 @@ class ServerToolkit:
         def tool_wrapper(*args, **kwargs):
             return method(*args, **kwargs)
 
-        self.mcp.tool()(tool_wrapper)
+        self._mcp.tool()(tool_wrapper)
 
     @staticmethod
     def mcp_tool(func: Callable) -> Callable:
@@ -88,7 +87,7 @@ class ServerToolkit:
             FastMCP: The MCP instance.
         """
         self._register_methods()
-        return self.mcp
+        return self._mcp
 
     def run(self, transport: Literal["sse", "stdio"] = "sse") -> None:
         """
@@ -97,4 +96,5 @@ class ServerToolkit:
         Args:
             transport (Literal["sse", "stdio"], optional): The transport to use. Defaults to "sse".
         """
-        self.mcp.run(transport=transport)
+        self._register_methods()
+        self._mcp.run(transport=transport)
