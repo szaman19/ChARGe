@@ -139,6 +139,7 @@ def is_molecule_synthesizable(smiles: str) -> bool:
     """Checks if a given molecule is synthesizable. First checks if it is
     available in a stock database, otherwise runs a retrosynthesis to see if a
     synthesis route can be found.
+
     Args:
         smiles (str): The SMILES string of the molecule to check.
 
@@ -185,8 +186,10 @@ def find_synthesis_routes(smiles: str) -> list[dict]:
 
     Args:
         smiles (str): the target molecule in SMILES representation.
+
     Returns:
         list[dict]: a list of synthesis routes, each of which is a reaction tree in json/dict format.
+
     Raises:
         ValueError:  If the molecule is not valid.
     """
