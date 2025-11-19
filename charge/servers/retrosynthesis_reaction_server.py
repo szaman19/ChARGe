@@ -94,6 +94,7 @@ if __name__ == "__main__":
         default=os.path.join(os.getcwd(), "config.yml"),
         help="Path to the configuration file for the AiZynthFinder",
     )
+    add_server_arguments(parser)
     args = parser.parse_args()
     exp_type = args.exp_type
 
@@ -111,5 +112,5 @@ if __name__ == "__main__":
         raise ValueError(f"Unknown task type: {exp_type}")
 
     server.run(
-        transport="sse",
+        transport=args.transport,
     )

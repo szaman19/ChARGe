@@ -60,5 +60,4 @@ if __name__ == "__main__":
     logger.info("[RDKit-SMILES] Starting Chem and BioInformatics MCP Server")
 
     sm = SMILESServer(SMILES_mcp)
-    mcp = sm.return_mcp()
-    mcp.run()
+    sm.run(transport=args.transport)

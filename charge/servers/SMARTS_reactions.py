@@ -62,5 +62,4 @@ if __name__ == "__main__":
     )
 
     sm = SMARTSServer(SMARTS_mcp)
-    mcp = sm.return_mcp()
-    mcp.run()
+    sm.run(transport=args.transport)
