@@ -123,6 +123,11 @@ class ServerToolkit:
 
 
 class MultiServerToolkit(ServerToolkit):
+    """
+    A class to combine multiple servers into a single object that
+    can be run as a single MCP server.
+    """
+
     def __init__(
         self,
         servers: list[ServerToolkit],
@@ -130,7 +135,17 @@ class MultiServerToolkit(ServerToolkit):
         host: str,
         port: int,
     ):
-        self.mcp = FastMCP(description, host=host, port=port)
+        """
+        Initialize the MultiServerToolkit.
+
+        Args:
+            servers (list[ServerToolkit]): The list of servers to register.
+            description (str): The description of the server.
+            host (str): The host of the server.
+            port (int): The port of the server.
+        """
+        mcp = FastMCP(description, host=host, port=port)
+        super().__init__(mcp)
 
         self.servers = servers
         # Register all tools from all servers
