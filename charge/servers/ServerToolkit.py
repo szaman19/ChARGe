@@ -79,6 +79,18 @@ class ServerToolkit:
         """
         mcp.tool()(func)
 
+    def register_function_to_server(func: Callable) -> None:
+        """
+        Register an external function to the server.
+
+        Args:
+            func (Callable): The function to register to the server.
+
+        Returns:
+            None
+        """
+        self._mcp.tool()(func)
+
     def return_mcp(self) -> FastMCP:
         """
         Return the MCP instance.

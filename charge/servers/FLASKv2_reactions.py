@@ -218,7 +218,7 @@ def main(
     logger.info(f"Available tools: {', '.join(server.get_available_tools())}")
 
     # Run MCP server
-    mcp.run(transport=transport)
+    server.run(transport=transport)
 
 
 if __name__ == "__main__":
