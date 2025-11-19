@@ -82,21 +82,58 @@ class Task(ABC):
         self.constructor_args = {}
 
     def get_system_prompt(self) -> str:
+        """
+        Get the system prompt for the task.
+
+        Returns:
+            str: The system prompt for the task.
+        """
         return self.system_prompt or ""
 
     def get_user_prompt(self) -> str:
+        """
+        Get the user prompt for the task.
+
+        Returns:
+            str: The user prompt for the task.
+        """
         return self.user_prompt or ""
 
     def get_verification_prompt(self) -> str:
+        """
+        Get the verification prompt for the task.
+
+        Returns:
+            str: The verification prompt for the task.
+        """
         return self.verification_prompt or ""
 
     def get_refinement_prompt(self) -> str:
+        """
+        Get the refinement prompt for the task.
+
+        Returns:
+            str: The refinement prompt for the task.
+        """
         return self.refinement_prompt or ""
 
     def register_buffer(self, name: str, value: str):
+        """
+        Register a buffer for the task.
+
+        Args:
+            name (str): The name of the buffer.
+            value (str): The value of the buffer.
+        """
         self.constructor_args[name] = value
 
-    def get_structured_output_schema(self):
+    def get_structured_output_schema(self) -> Type[BaseModel]:
+        """
+        Get the structured output schema for the task.
+
+        Returns:
+            Type[BaseModel]: The structured output schema for the task.
+        """
         assert (
             self.has_structured_output_schema()
         ), "structured_output_schema not implemented"
@@ -104,9 +141,21 @@ class Task(ABC):
         return self.structured_output_schema  # type: ignore
 
     def set_structured_output_schema(self, schema: Type[BaseModel]):
+        """
+        Set the structured output schema for the task.
+
+        Args:
+            schema (Type[BaseModel]): The structured output schema to set.
+        """
         self.structured_output_schema = schema
 
     def has_structured_output_schema(self) -> bool:
+        """
+        Check if the task has a structured output schema.
+
+        Returns:
+            bool: True if the task has a structured output schema, False otherwise.
+        """
         return (
             hasattr(self, "structured_output_schema")
             and self.structured_output_schema is not None
@@ -115,8 +164,10 @@ class Task(ABC):
     def set_system_prompt_from_file(self, file_path: str):
         """
         Set the system prompt from a file.
+
         Args:
             file_path (str): Path to the file containing the system prompt.
+
         Raises:
             ValueError: If the file is not a .txt or .json file.
         """
@@ -126,8 +177,10 @@ class Task(ABC):
     def set_user_prompt_from_file(self, file_path: str):
         """
         Set the user prompt from a file.
+
         Args:
             file_path (str): Path to the file containing the user prompt.
+
         Raises:
             ValueError: If the file is not a .txt or .json file.
 
@@ -138,8 +191,10 @@ class Task(ABC):
     def set_verification_prompt_from_file(self, file_path: str):
         """
         Set the verification prompt from a file.
+
         Args:
             file_path (str): Path to the file containing the verification prompt.
+
         Raises:
             ValueError: If the file is not a .txt or .json file.
         """
@@ -149,8 +204,10 @@ class Task(ABC):
     def set_refinement_prompt_from_file(self, file_path: str):
         """
         Set the refinement prompt from a file.
+
         Args:
             file_path (str): Path to the file containing the refinement prompt.
+
         Raises:
             ValueError: If the file is not a .txt or .json file.
         """
@@ -160,6 +217,7 @@ class Task(ABC):
     def has_verification_prompt(self) -> bool:
         """
         Check if the task has a verification prompt.
+
         Returns:
             bool: True if the task has a verification prompt, False otherwise.
         """
@@ -168,6 +226,7 @@ class Task(ABC):
     def has_refinement_prompt(self) -> bool:
         """
         Check if the task has a refinement prompt.
+
         Returns:
             bool: True if the task has a refinement prompt, False otherwise.
         """
@@ -176,6 +235,10 @@ class Task(ABC):
     def check_output_formatting(self, content: str | bytes | bytearray) -> bool:
         """
         Check if the task has output formatting requirements.
+
+        Args:
+            content (str | bytes | bytearray): The content to check.
+
         Returns:
             bool: True if the task has output formatting requirements, False otherwise.
         """
