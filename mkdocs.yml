@@ -27,6 +27,11 @@ plugins:
               show_members_order: true
               paths: [.] # IMPORTANT: tell mkdocstrings where to find your package source
 
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  
 theme: 
   name: readthedocs
   language: en

@@ -47,20 +47,21 @@ class Task(ABC):
                                                        for the task.
             **kwargs: Additional keyword arguments to be stored in the task.
 
-        **Note:** Automatic verification is an experimental feature and may not work as expected.
+        !!! note "Automatic verification is an experimental feature and may not work as expected."
 
-        The task class can also be extended to include hypothesis methods
-        (decorated with @hypothesis) and verifier methods (decorated with @verifier).
-        Appropriate MCPs are automatically generated for these methods and used by the
-        Client class to call these methods in the HVR process. Prewritten functions
-        (with type annotations and docstrings) can also be added to the Task
-        via the register_<hypothesis/verifier>_tool functions.
+            The task class can also be extended to include hypothesis methods
+            (decorated with @hypothesis) and verifier methods (decorated with @verifier).
+            Appropriate MCPs are automatically generated for these methods and used by the
+            Client class to call these methods in the HVR process. Prewritten functions
+            (with type annotations and docstrings) can also be added to the Task
+            via the register_<hypothesis/verifier>_tool functions.
 
-        **Note:** Automatic MCP generation is an experimental feature and may not work as
-        expected. All decorated methods must have proper type annotations and be static.
-        The docstring of the methods is used as the docstring in the MCP server.
-        Long running MCPs with high starting costs should be provided separately to the
-        client or the method should call out to an external service / process.
+        !!! note "Automatic MCP generation is an experimental feature and may not work as expected."
+        
+            All decorated methods must have proper type annotations and be static.
+            The docstring of the methods is used as the docstring in the MCP server.
+            Long running MCPs with high starting costs should be provided separately to the
+            client or the method should call out to an external service / process."
 
         """
         self.system_prompt = system_prompt
