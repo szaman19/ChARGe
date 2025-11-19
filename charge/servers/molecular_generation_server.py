@@ -23,7 +23,6 @@ import json
 import os
 from charge.tasks.Task import Task
 from charge.servers.server_utils import add_server_arguments
-from charge.clients.autogen import AutoGenClient
 from charge.clients.Client import Client
 import asyncio
 from charge.servers import SMILES_utils
@@ -78,7 +77,7 @@ class MoleculeGenerationServer(SMILESServer):
             backend=self.backend,
         )
 
-    @mcp_tool
+    @ServerToolkit.mcp_tool
     def diagnose_smiles(self, smiles: str) -> str:
         """
         Diagnose a SMILES string. Returns a diagnosis of the SMILES string.
@@ -111,7 +110,7 @@ class MoleculeGenerationServer(SMILESServer):
             logger.error(f"An error occurred: {e}")
             return "Error: Unable to process the SMILES string at this time."
 
-    @mcp_tool
+    @ServerToolkit.mcp_tool
     def is_already_known(self, smiles: str) -> bool:
         """
         Check if a SMILES string provided is already known. Only provide
@@ -152,7 +151,7 @@ class MoleculeGenerationServer(SMILESServer):
         # Check if the SMILES string is already known (in the database)
         return canonical_smiles in known_smiles
 
-    @mcp_tool
+    @ServerToolkit.mcp_tool
     def get_density(self, smiles: str) -> float:
         """
         Calculate the density of a molecule given its SMILES string.
