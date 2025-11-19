@@ -110,3 +110,35 @@ class ServerToolkit:
         """
         self._register_methods()
         self._mcp.run(transport=transport)
+
+    def update_mcp(self, mcp: FastMCP) -> None:
+        """
+        Update the MCP instance.
+
+        Args:
+            mcp (FastMCP): The new MCP instance.
+        """
+        self._mcp = mcp
+        self._register_methods()
+
+
+class MultiServerToolkit(ServerToolkit):
+    def __init__(
+        self,
+        servers: list[ServerToolkit],
+        description: str,
+        host: str,
+        port: int,
+    ):
+        self.mcp = FastMCP(description, host=host, port=port)
+
+        self.servers = servers
+        # Register all tools from all servers
+        for server in self.servers:
+            for name in dir(server):
+                if name.startswith("_"):
+                    continue
+
+                attr = getattr(server, name)
+                if callable(attr) and hasattr(attr, "_is_mcp_tool"):
+                    self.mcp.tool()(attr)
