@@ -7,13 +7,14 @@
 
 from mcp.server.fastmcp import FastMCP
 from functools import wraps
-from typing import Callable
+from typing import Callable, Literal
 
 
 class ServerToolkit:
     """
     A class that provides a toolkit for registering methods as MCP tools.
     """
+
     def __init__(self, mcp: FastMCP):
         self.mcp = mcp
         self._pending_methods = []
@@ -67,7 +68,7 @@ class ServerToolkit:
 
     @staticmethod
     def register_function_as_tool(mcp: FastMCP, func: Callable) -> None:
-        """ 
+        """
         Register an external function as an MCP tool.
 
         Args:
@@ -88,3 +89,12 @@ class ServerToolkit:
         """
         self._register_methods()
         return self.mcp
+
+    def run(self, transport: Literal["sse", "stdio"] = "sse") -> None:
+        """
+        Run the MCP server.
+
+        Args:
+            transport (Literal["sse", "stdio"], optional): The transport to use. Defaults to "sse".
+        """
+        self.mcp.run(transport=transport)

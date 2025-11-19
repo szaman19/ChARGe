@@ -12,6 +12,7 @@ from charge.servers.ServerToolkit import ServerToolkit
 
 try:
     import charge.servers.SMILES_utils as smiles
+
     HAS_SMILES = True
 except (ImportError, ModuleNotFoundError) as e:
     HAS_SMILES = False
@@ -21,11 +22,11 @@ except (ImportError, ModuleNotFoundError) as e:
     )
 
 
-
 class SMILESServer(ServerToolkit):
     """
     A ChARGe server that provides SMILES based tools.
-    """ 
+    """
+
     def __init__(self, mcp: FastMCP):
         """
         Initialize the SMILESServer.
@@ -40,8 +41,6 @@ class SMILESServer(ServerToolkit):
             self.register_function_as_tool(self.mcp, smiles.verify_smiles)
             self.register_function_as_tool(self.mcp, smiles.get_synthesizability)
             self.register_function_as_tool(self.mcp, smiles.known_smiles)
-    
-
 
 
 if __name__ == "__main__":

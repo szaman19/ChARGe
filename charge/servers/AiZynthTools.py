@@ -57,11 +57,15 @@ class ReactionPath:
         self.nodes: Dict[int, Node] = {}
         self.num_nodes = 0
         self._build_path()
-        self.leaf_nodes = [node_id for node_id, node in self.nodes.items() if node.is_leaf]
+        self.leaf_nodes = [
+            node_id for node_id, node in self.nodes.items() if node.is_leaf
+        ]
 
     def _build_path(self):
 
-        self.root = Node(node_id=0, smiles=self.route["smiles"], children=[], is_root=True)
+        self.root = Node(
+            node_id=0, smiles=self.route["smiles"], children=[], is_root=True
+        )
         self.nodes[0] = self.root
         self.num_nodes += 1
         reaction_node = self.route["children"][0]
@@ -86,7 +90,9 @@ class ReactionPath:
                 self.num_nodes += 1
                 if "children" in child:
                     reaction_node = child["children"][0]
-                    self._add_children(child_node, reaction_node, reaction_node["children"])
+                    self._add_children(
+                        child_node, reaction_node, reaction_node["children"]
+                    )
                 else:
                     child_node.is_leaf = True
 
@@ -143,7 +149,9 @@ def is_molecule_synthesizable(smiles: str) -> bool:
         ValueError:  If the molecule is not valid.
     """
     if not HAS_AIZYNTHFINDER:
-        raise ImportError("Please install the aizynthfinder support packages to use this module.")
+        raise ImportError(
+            "Please install the aizynthfinder support packages to use this module."
+        )
 
     logger.info(f"Checking if molecule {smiles} is synthesizable.")
 
@@ -163,7 +171,9 @@ def is_molecule_synthesizable(smiles: str) -> bool:
     for route in routes:
         path = ReactionPath(route=route)
         # check if all leaf nodes are purchasable
-        all_purchasable = all(path.nodes[node_id].purchasable is True for node_id in path.leaf_nodes)
+        all_purchasable = all(
+            path.nodes[node_id].purchasable is True for node_id in path.leaf_nodes
+        )
         if all_purchasable:
             return True
     return False
@@ -181,7 +191,9 @@ def find_synthesis_routes(smiles: str) -> list[dict]:
         ValueError:  If the molecule is not valid.
     """
     if not HAS_AIZYNTHFINDER:
-        raise ImportError("Please install the aizynthfinder support packages to use this module.")
+        raise ImportError(
+            "Please install the aizynthfinder support packages to use this module."
+        )
 
     logger.info(f"Find a synthesis route for molecule {smiles}.")
 

@@ -13,6 +13,7 @@ try:
     from charge.servers.SMARTS_reactions_utils import verify_reaction_SMARTS
     from charge.servers.SMILES_utils import verify_smiles
     from charge.servers.SMARTS_reactions_utils import verify_reaction
+
     HAS_SMARTS = True
 except (ImportError, ModuleNotFoundError) as e:
     HAS_SMARTS = False
@@ -26,6 +27,7 @@ class SMARTSServer(ServerToolkit):
     """
     A ChARGe server that provides tools for Chemistry and reaction verification.
     """
+
     def __init__(self, mcp: FastMCP):
         """
         Initialize the SMARTSServer.
@@ -45,7 +47,9 @@ if __name__ == "__main__":
     from charge.servers.server_utils import add_server_arguments
     import argparse
 
-    logger.info("[RDKit-SMARTS] Starting Chemistry and reaction verification MCP Server")
+    logger.info(
+        "[RDKit-SMARTS] Starting Chemistry and reaction verification MCP Server"
+    )
 
     parser = argparse.ArgumentParser()
     add_server_arguments(parser)
