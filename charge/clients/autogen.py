@@ -36,12 +36,15 @@ import warnings
 from charge.clients.AgentPool import AgentPool, Agent
 from charge.clients.Client import Client
 from charge.clients.autogen_utils import (
+    POSSIBLE_CONNECTION_ERRORS,
     ChARGeListMemory,
     _list_wb_tools,
     generate_agent,
     list_client_tools,
     CustomConsole,
     cli_chat_callback,
+    _POSSIBLE_CONNECTION_ERRORS,
+    chargeConnectionError,
 )
 from typing import Any, Tuple, Type, Optional, Dict, Union, List, Callable, overload
 from charge.tasks.Task import Task
@@ -436,8 +439,16 @@ class AutoGenAgent(Agent):
                     )
                     logger.warning(error_msg)
                     last_error = ValueError("Output validation failed")
-
+            except POSSIBLE_CONNECTION_ERRORS as api_err:
+                error_msg = f"Attempt {attempt}: API connection error: {api_err}"
+                logger.error(error_msg)
+                raise chargeConnectionError(error_msg)
+            # except APIConnectionError as api_err:
+            #     error_msg = f"Attempt {attempt}: API connection error: {api_err}"
+            #     logger.error(error_msg)
+            #     raise chargeConnectionError(error_msg)
             except Exception as e:
+                breakpoint()
                 error_msg = f"Attempt {attempt}: Unexpected error: {e}"
                 logger.error(error_msg)
                 last_error = e
@@ -594,15 +605,6 @@ class AutoGenPool(AgentPool):
     def __init__(
         self,
         model_client: Union[AsyncOpenAI, ChatCompletionClient],
-    ) -> None: ...
-
-    @overload
-    def __init__(
-        self,
-        *,
-        model: str,
-        backend: str = "openai",
-        model_kwargs: Optional[dict] = None,
     ) -> None: ...
 
     @overload
