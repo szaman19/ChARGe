@@ -54,6 +54,11 @@ def model_configure(
     api_key: Optional[str] = None,
     base_url: Optional[str] = None,
 ) -> Tuple[str, str, Optional[str], Dict[str, str]]:
+    """
+    Raises:
+        ValueError: If API key does not exist and is needed.
+
+    """
     import httpx
 
     kwargs = {}
@@ -69,15 +74,24 @@ def model_configure(
             kwargs["reasoning_effort"] = "high"
         elif backend == "livai" or backend == "livchat":
             if not api_key:
-                api_key = os.getenv("OPENAI_API_KEY")
+                api_key = os.getenv("LIVAI_API_KEY")
             if not base_url:
                 base_url = os.getenv("LIVAI_BASE_URL")
-                assert (
-                    base_url is not None
-                ), "LivAI Base URL must be set in environment variable"
+                if base_url is None:
+                    raise ValueError(f"LivAI Base URL must be set in environment variable for backend {backend}")
             default_model = "gpt-4.1"
             kwargs["base_url"] = base_url
             kwargs["http_client"] = httpx.AsyncClient(verify=False)
+        elif backend == "LLamaMe":
+            if not api_key:
+                api_key = os.getenv("LLAMAME_API_KEY")
+            if not base_url:
+                base_url = os.getenv("LLAMAME_BASE_URL")
+                if base_url is None:
+                    raise ValueError(f"LLamaMe Base URL must be set in environment variable for backend {backend}")
+            default_model = "openai/gpt-oss-120b "
+            kwargs["base_url"] = base_url
+            # kwargs["http_client"] = httpx.AsyncClient(verify=False)
         else:
             if not api_key:
                 api_key = os.getenv("GOOGLE_API_KEY")
@@ -86,7 +100,8 @@ def model_configure(
                 kwargs["base_url"] = base_url
             kwargs["parallel_tool_calls"] = False
             kwargs["reasoning_effort"] = "high"
-        assert api_key is not None, f"API key must be set for backend {backend}"
+        if api_key is None:
+            raise ValueError(f"API key must be set for backend {backend}")
     elif backend in ["ollama"]:
         default_model = "gpt-oss:latest"
 
