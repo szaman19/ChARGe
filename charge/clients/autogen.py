@@ -78,7 +78,9 @@ def model_configure(
             if not base_url:
                 base_url = os.getenv("LIVAI_BASE_URL")
                 if base_url is None:
-                    raise ValueError(f"LivAI Base URL must be set in environment variable for backend {backend}")
+                    raise ValueError(
+                        f"LivAI Base URL must be set in environment variable for backend {backend}"
+                    )
             default_model = "gpt-4.1"
             kwargs["base_url"] = base_url
             kwargs["http_client"] = httpx.AsyncClient(verify=False)
@@ -88,7 +90,9 @@ def model_configure(
             if not base_url:
                 base_url = os.getenv("LLAMAME_BASE_URL")
                 if base_url is None:
-                    raise ValueError(f"LLamaMe Base URL must be set in environment variable for backend {backend}")
+                    raise ValueError(
+                        f"LLamaMe Base URL must be set in environment variable for backend {backend}"
+                    )
             default_model = "openai/gpt-oss-120b "
             kwargs["base_url"] = base_url
             # kwargs["http_client"] = httpx.AsyncClient(verify=False)
@@ -598,6 +602,17 @@ class AutoGenPool(AgentPool):
         *,
         model: str,
         backend: str = "openai",
+        model_kwargs: Optional[dict] = None,
+    ) -> None: ...
+
+    @overload
+    def __init__(
+        self,
+        *,
+        model: str,
+        backend: str = "openai",
+        api_key: Optional[str] = None,
+        base_url: Optional[str] = None,
         model_kwargs: Optional[dict] = None,
     ) -> None: ...
 
