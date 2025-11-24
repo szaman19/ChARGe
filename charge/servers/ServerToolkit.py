@@ -8,6 +8,7 @@
 from mcp.server.fastmcp import FastMCP
 from functools import wraps
 from typing import Callable, Literal
+import time
 
 
 class ServerToolkit:
@@ -157,3 +158,84 @@ class MultiServerToolkit(ServerToolkit):
                 attr = getattr(server, name)
                 if callable(attr) and hasattr(attr, "_is_mcp_tool"):
                     self.mcp.tool()(attr)
+
+
+class ToolKitLauncher:
+    """
+    A class to launch on a seperate process a server with a toolkit
+    """
+
+    def __init__(self, toolkit: ServerToolkit):
+        self.toolkit = toolkit
+        self.process = None
+
+    def start(self, transport: Literal["sse", "streamable-http"] = "sse"):
+        """
+        Run the toolkit in a separate process.
+
+        Args:
+            transport (Literal["sse", "streamable-http"], optional): The transport to use. Defaults to "sse".
+        """
+
+        import multiprocessing
+
+        self.process = multiprocessing.Process(
+            target=self.toolkit.run, args=(transport,), daemon=True
+        )
+        self.process.start()
+        self.wait_for_start()
+
+    def wait_for_start(self, timeout: int = 10):
+        """
+        Wait for the process to start.
+
+        Args:
+            timeout (int, optional): The timeout in seconds. Defaults to 10.
+        """
+
+        start_time = time.time()
+        while not self.is_running():
+            if time.time() - start_time > timeout:
+                raise TimeoutError("Process did not start within the timeout period.")
+            time.sleep(0.1)
+
+    def stop(self):
+        """
+        Stop the process.
+        """
+        if self.process is None:
+            return
+        self.process.terminate()
+        self.process.join()
+        self.process = None
+
+    def is_running(self) -> bool:
+        """
+        Check if the process is running.
+
+        Returns:
+            bool: True if the process is running, False otherwise.
+        """
+        return self.process is not None and self.process.is_alive()
+
+    def get_process(self) -> Optional[multiprocessing.Process]:
+        """
+        Get the process.
+
+        Returns:
+            Optional[multiprocessing.Process]: The process.
+        """
+        return self.process
+
+    def __del__(self):
+        """
+        Destructor to stop the process.
+        """
+        self.stop()
+
+    def __enter__(self):
+        self.start()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.stop()
