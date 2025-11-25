@@ -87,7 +87,7 @@ def model_configure(
             default_model = "gpt-4.1"
             kwargs["base_url"] = base_url
             kwargs["http_client"] = httpx.AsyncClient(verify=False)
-        elif backend == "LLamaMe":
+        elif backend == "llamame":
             if not api_key:
                 api_key = os.getenv("LLAMAME_API_KEY")
             if not base_url:
@@ -115,6 +115,7 @@ def model_configure(
     if not model:
         model = default_model
     assert model is not None, "Model name must be provided."
+
     return (model, backend, api_key, kwargs)
 
 
