@@ -444,12 +444,7 @@ class AutoGenAgent(Agent):
                 error_msg = f"Attempt {attempt}: API connection error: {api_err}"
                 logger.error(error_msg)
                 raise chargeConnectionError(error_msg)
-            # except APIConnectionError as api_err:
-            #     error_msg = f"Attempt {attempt}: API connection error: {api_err}"
-            #     logger.error(error_msg)
-            #     raise chargeConnectionError(error_msg)
             except Exception as e:
-                breakpoint()
                 error_msg = f"Attempt {attempt}: Unexpected error: {e}"
                 logger.error(error_msg)
                 last_error = e
