@@ -36,12 +36,15 @@ import warnings
 from charge.clients.AgentPool import AgentPool, Agent
 from charge.clients.Client import Client
 from charge.clients.autogen_utils import (
+    POSSIBLE_CONNECTION_ERRORS,
     ChARGeListMemory,
     _list_wb_tools,
     generate_agent,
     list_client_tools,
     CustomConsole,
     cli_chat_callback,
+    _POSSIBLE_CONNECTION_ERRORS,
+    chargeConnectionError,
 )
 from typing import Any, Tuple, Type, Optional, Dict, Union, List, Callable, overload
 from charge.tasks.Task import Task
@@ -63,7 +66,7 @@ def model_configure(
 
     kwargs = {}
     default_model = None
-    if backend in ["openai", "gemini", "livai", "livchat"]:
+    if backend in ["openai", "gemini", "livai", "livchat", "llamame"]:
         if backend == "openai":
             if not api_key:
                 api_key = os.getenv("OPENAI_API_KEY")
@@ -78,17 +81,21 @@ def model_configure(
             if not base_url:
                 base_url = os.getenv("LIVAI_BASE_URL")
                 if base_url is None:
-                    raise ValueError(f"LivAI Base URL must be set in environment variable for backend {backend}")
+                    raise ValueError(
+                        f"LivAI Base URL must be set in environment variable for backend {backend}"
+                    )
             default_model = "gpt-4.1"
             kwargs["base_url"] = base_url
             kwargs["http_client"] = httpx.AsyncClient(verify=False)
-        elif backend == "LLamaMe":
+        elif backend == "llamame":
             if not api_key:
                 api_key = os.getenv("LLAMAME_API_KEY")
             if not base_url:
                 base_url = os.getenv("LLAMAME_BASE_URL")
                 if base_url is None:
-                    raise ValueError(f"LLamaMe Base URL must be set in environment variable for backend {backend}")
+                    raise ValueError(
+                        f"LLamaMe Base URL must be set in environment variable for backend {backend}"
+                    )
             default_model = "openai/gpt-oss-120b "
             kwargs["base_url"] = base_url
             # kwargs["http_client"] = httpx.AsyncClient(verify=False)
@@ -432,7 +439,10 @@ class AutoGenAgent(Agent):
                     )
                     logger.warning(error_msg)
                     last_error = ValueError("Output validation failed")
-
+            except POSSIBLE_CONNECTION_ERRORS as api_err:
+                error_msg = f"Attempt {attempt}: API connection error: {api_err}"
+                logger.error(error_msg)
+                raise chargeConnectionError(error_msg)
             except Exception as e:
                 error_msg = f"Attempt {attempt}: Unexpected error: {e}"
                 logger.error(error_msg)
@@ -598,6 +608,8 @@ class AutoGenPool(AgentPool):
         *,
         model: str,
         backend: str = "openai",
+        api_key: Optional[str] = None,
+        base_url: Optional[str] = None,
         model_kwargs: Optional[dict] = None,
     ) -> None: ...
 
