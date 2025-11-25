@@ -66,7 +66,7 @@ def model_configure(
 
     kwargs = {}
     default_model = None
-    if backend in ["openai", "gemini", "livai", "livchat"]:
+    if backend in ["openai", "gemini", "livai", "livchat", "llamame"]:
         if backend == "openai":
             if not api_key:
                 api_key = os.getenv("OPENAI_API_KEY")
