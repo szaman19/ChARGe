@@ -115,7 +115,6 @@ def model_configure(
     if not model:
         model = default_model
     assert model is not None, "Model name must be provided."
-
     return (model, backend, api_key, kwargs)
 
 
