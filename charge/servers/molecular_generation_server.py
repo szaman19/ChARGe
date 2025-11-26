@@ -165,7 +165,10 @@ mcp.tool()(SMILES_utils.canonicalize_smiles)
 mcp.tool()(SMILES_utils.verify_smiles)
 mcp.tool()(SMILES_utils.get_synthesizability)
 
-def setup_autogen_pool(model: str, backend: str, api_key: Optional[str], base_url: Optional[str])
+
+def setup_autogen_pool(
+    model: str, backend: str, api_key: Optional[str], base_url: Optional[str]
+):
     global AGENT_POOL
     AGENT_POOL = AutoGenPool(
         model=model, backend=backend, api_key=api_key, base_url=base_url
