@@ -202,6 +202,8 @@ if __name__ == "__main__":
     base_url = args.server_urls
     api_key = args.api_key
 
+    global AGENT_POOL
+
     AGENT_POOL = AutoGenPool(
         model=model, backend=backend, api_key=api_key, base_url=base_url
     )
