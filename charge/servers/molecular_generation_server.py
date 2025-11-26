@@ -192,6 +192,13 @@ if __name__ == "__main__":
         help="API key for the backend model, if required.",
     )
 
+    parser.add_argument(
+        "--base-url",
+        type=str,
+        default=None,
+        help="Base URL for the AutoGen server, if applicable.",
+    )
+
     args = parser.parse_args()
 
     model = args.model
