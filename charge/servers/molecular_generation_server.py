@@ -38,7 +38,7 @@ mcp = FastMCP(
 
 
 JSON_FILE_PATH = f"{os.getcwd()}/known_molecules.json"
-AGENT_POOL: Optional[AutoGenPool] = None
+AGENT_POOL: AutoGenPool | None = None
 
 
 class DiagnoseSMILESTask(Task):
@@ -78,6 +78,7 @@ def diagnose_smiles(smiles: str) -> str:
     logger.info(f"Diagnosing SMILES string: {smiles}")
     task = DiagnoseSMILESTask(smiles=smiles)
 
+    global AGENT_POOL
     assert (
         AGENT_POOL is not None
     ), "Agent pool is not initialized. Diagnoise Tool not available."
@@ -201,8 +202,6 @@ if __name__ == "__main__":
     backend = args.backend
     base_url = args.server_urls
     api_key = args.api_key
-
-    global AGENT_POOL
 
     AGENT_POOL = AutoGenPool(
         model=model, backend=backend, api_key=api_key, base_url=base_url
