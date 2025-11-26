@@ -60,10 +60,6 @@ class DiagnoseSMILESTask(Task):
             system_prompt=system_prompt, user_prompt=user_prompt, *args, **kwargs
         )
 
-    def update_user_prompt(self, smiles: str) -> None:
-        assert self.user_prompt is not None
-        self.user_prompt.format(smiles)
-
 
 @mcp.tool()
 def diagnose_smiles(smiles: str) -> str:
