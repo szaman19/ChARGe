@@ -142,7 +142,7 @@ def is_already_known(smiles: str) -> bool:
 
 
 @mcp.tool()
-def get_density(smiles: str) -> float:
+def get_property_density(smiles: str) -> float:
     """
     Calculate the density of a molecule given its SMILES string.
 
