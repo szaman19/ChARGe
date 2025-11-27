@@ -25,7 +25,7 @@ import sys
 import os
 
 
-def get_property_density(smiles: str) -> float:
+def get_density(smiles: str) -> float:
     """
     Calculate the density of a molecule given its SMILES string.
     Density is the molecular weight of the molecule per unit volume.
@@ -88,7 +88,7 @@ def get_density_and_synthesizability(smiles: str) -> tuple[float, float]:
         raise ImportError(
             "Please install the rdkit support packages to use this module."
         )
-    density = get_property_density(smiles)
+    density = get_density(smiles)
     synthesizability = get_synthesizability(smiles)
     return density, synthesizability
 

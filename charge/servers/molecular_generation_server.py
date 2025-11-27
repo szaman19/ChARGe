@@ -29,7 +29,7 @@ import asyncio
 from charge.servers import SMILES_utils
 import charge.utils.helper_funcs as hf
 import argparse
-from typing import Optional
+from typing import Optional, Literal
 
 
 mcp = FastMCP(
@@ -141,29 +141,38 @@ def is_already_known(smiles: str) -> bool:
     return canonical_smiles in known_smiles
 
 
+# Add the SMILES utility functions as MCP tools
+mcp.tool()(SMILES_utils.canonicalize_smiles)
+mcp.tool()(SMILES_utils.verify_smiles)
+
+
 @mcp.tool()
-def get_property_density(smiles: str) -> float:
+def calculate_property(
+    smiles: str, property: Literal["density", "synthesizability"]
+) -> float:
     """
-    Calculate the density of a molecule given its SMILES string.
+    Get a molecular property given its SMILES string.
 
     Args:
         smiles (str): The input SMILES string.
+        property (str): The property to calculate ("density" or "synthesizability").
     Returns:
-        float: The density of the molecule.
+        float: The requested property of the molecule.
     """
     if not HAS_RDKIT:
         raise ImportError(
             "Please install the rdkit support packages to use this module."
         )
-    density = hf.get_density(smiles)
-    logger.info(f"Density for SMILES {smiles}: {density}")
-    return density
-
-
-# Add the SMILES utility functions as MCP tools
-mcp.tool()(SMILES_utils.canonicalize_smiles)
-mcp.tool()(SMILES_utils.verify_smiles)
-mcp.tool()(SMILES_utils.get_synthesizability)
+    if property == "density":
+        density = hf.get_density(smiles)
+        logger.info(f"Density for SMILES {smiles}: {density}")
+        return density
+    elif property == "synthesizability":
+        synth_score = SMILES_utils.get_synthesizability(smiles)
+        logger.info(f"Synthesizability for SMILES {smiles}: {synth_score}")
+        return synth_score
+    else:
+        raise ValueError(f"Unknown property: {property}")
 
 
 def setup_autogen_pool(
