@@ -6,10 +6,12 @@
 ################################################################################
 
 from loguru import logger
+
 try:
     from rdkit import Chem
     from rdkit.Chem import AllChem, Descriptors
     from rdkit.Contrib.SA_Score import sascorer
+
     HAS_RDKIT = True
 except (ImportError, ModuleNotFoundError) as e:
     HAS_RDKIT = False
@@ -21,6 +23,7 @@ except (ImportError, ModuleNotFoundError) as e:
 from charge.servers.SMILES_utils import get_synthesizability
 import sys
 import os
+
 
 def get_density(smiles: str) -> float:
     """
@@ -34,7 +37,9 @@ def get_density(smiles: str) -> float:
         float: Density of the molecule, returns 0.0 if there is an error.
     """
     if not HAS_RDKIT:
-        raise ImportError("Please install the rdkit support packages to use this module.")
+        raise ImportError(
+            "Please install the rdkit support packages to use this module."
+        )
     try:
         # logger.info(f"Calculating density for SMILES: {smiles}")
         mol = Chem.MolFromSmiles(smiles)
@@ -80,23 +85,25 @@ def get_density_and_synthesizability(smiles: str) -> tuple[float, float]:
     """
 
     if not HAS_RDKIT:
-        raise ImportError("Please install the rdkit support packages to use this module.")
+        raise ImportError(
+            "Please install the rdkit support packages to use this module."
+        )
     density = get_density(smiles)
     synthesizability = get_synthesizability(smiles)
     return density, synthesizability
 
-def chemprop_preds_server(smiles: str,property:str) -> float:
-    
+
+def chemprop_preds_server(smiles: str, property: str) -> float:
     """
     Predict molecular properties using pre-trained Chemprop models.
-    This function returns property predictions from Chemprop models. It validates the requested property name,  
+    This function returns property predictions from Chemprop models. It validates the requested property name,
     constructs the appropriate model, and returns predictions for the provided SMILES input.
 
     Valid properties
     ----------------
     ChARGe can request any of the following property names:
-      - density : Predicted density (g/cm³) 
-      - hof     : Heat of formation (kcal/mol) 
+      - density : Predicted density (g/cm³)
+      - hof     : Heat of formation (kcal/mol)
       - alpha   : Polarizability (a0³)
       - cv      : Heat capacity at constant volume (cal/mol·K)
       - gap     : HOMO–LUMO energy gap (Hartree)
@@ -135,24 +142,41 @@ def chemprop_preds_server(smiles: str,property:str) -> float:
     try:
         from charge.servers.get_chemprop2_preds import predict_with_chemprop
     except Exception as e:
-        logger.warning("Please install the chemprop support packages to use this module.")
+        logger.warning(
+            "Please install the chemprop support packages to use this module."
+        )
         return 0.0
 
     if not HAS_RDKIT:
-        raise ImportError("Please install the rdkit support packages to use this module.")
-    valid_properties = {'density', 'hof', 'alpha','cv','gap','homo','lumo','mu','r2','zpve','lipo'}
+        raise ImportError(
+            "Please install the rdkit support packages to use this module."
+        )
+    valid_properties = {
+        "density",
+        "hof",
+        "alpha",
+        "cv",
+        "gap",
+        "homo",
+        "lumo",
+        "mu",
+        "r2",
+        "zpve",
+        "lipo",
+    }
     if property not in valid_properties:
         raise ValueError(
             f"Invalid property '{property}'. Must be one of {valid_properties}."
         )
-    chemprop_base_path=os.environ.get("CHEMPROP_BASE_PATH")
-    if(chemprop_base_path):
-        model_path=os.path.join(chemprop_base_path, property)
-        model_path=os.path.join(model_path, 'model_0/best.pt')
-        return(predict_with_chemprop(model_path,[smiles])[0][0])
+    chemprop_base_path = os.environ.get("CHEMPROP_BASE_PATH")
+    if chemprop_base_path:
+        model_path = os.path.join(chemprop_base_path, property)
+        model_path = os.path.join(model_path, "model_0/best.pt")
+        return predict_with_chemprop(model_path, [smiles])[0][0]
     else:
-        print('CHEMPROP_BASE_PATH environment variable not set!')
+        print("CHEMPROP_BASE_PATH environment variable not set!")
         sys.exit(2)
+
 
 def get_molecule_price(smiles):
     """
@@ -176,11 +200,15 @@ def get_molecule_price(smiles):
     try:
         from charge.servers.molecule_pricer import get_chemspace_prices
     except Exception as e:
-        logger.warning("Please install the chemprice support packages to use this module.")
+        logger.warning(
+            "Please install the chemprice support packages to use this module."
+        )
         return 0.0
 
     if not HAS_RDKIT:
-        raise ImportError("Please install the rdkit support packages to use this module.")
+        raise ImportError(
+            "Please install the rdkit support packages to use this module."
+        )
 
-    price=get_chemspace_prices([smiles])
-    return(price[0])    
+    price = get_chemspace_prices([smiles])
+    return price[0]
