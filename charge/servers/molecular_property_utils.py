@@ -93,9 +93,14 @@ def get_density_and_synthesizability(smiles: str) -> tuple[float, float]:
     return density, synthesizability
 
 
-def chemprop_preds_server(smiles: str, property: str) -> float:
+PropertyType = Literal[
+    "density", "hof", "alpha", "cv", "gap", 
+    "homo", "lumo", "mu", "r2", "zpve", "lipo"
+]
+
+def chemprop_preds_server(smiles: str, property: PropertyType) -> float:
     """
-    Predict molecular properties using pre-trained Chemprop models.
+    Predict molecular properties using high-fidelity pre-trained Chemprop models.
     This function returns property predictions from Chemprop models. It validates the requested property name,
     constructs the appropriate model, and returns predictions for the provided SMILES input.
 
@@ -133,10 +138,10 @@ def chemprop_preds_server(smiles: str, property: str) -> float:
 
     Examples
     --------
-    >>> chemprop_preds_server("CCO", "gap")
+    >>> calculate_property_hf("CCO", "gap")
     6.73
 
-    >>> chemprop_preds_server("c1ccccc1", "lipo")
+    >>> calculate_property_hf("c1ccccc1", "lipo")
     2.94
     """
     try:
@@ -174,8 +179,9 @@ def chemprop_preds_server(smiles: str, property: str) -> float:
         model_path = os.path.join(model_path, "model_0/best.pt")
         return predict_with_chemprop(model_path, [smiles])[0][0]
     else:
-        print("CHEMPROP_BASE_PATH environment variable not set!")
-        sys.exit(2)
+        raise ValueError(
+            f"CHEMPROP_BASE_PATH environment variable not set!"
+        )
 
 
 def get_molecule_price(smiles):
